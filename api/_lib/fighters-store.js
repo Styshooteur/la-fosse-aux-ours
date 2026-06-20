@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { head, put } from '@vercel/blob';
-import { getBlobCallOptions, isBlobConfigured } from './blob.js';
+import { head } from '@vercel/blob';
+import { getBlobCallOptions, isBlobConfigured, putBlob } from './blob.js';
 import { FIGHTERS_REGISTRY_BLOB } from './config.js';
 
 function loadBaseFighters() {
@@ -43,13 +43,11 @@ export async function saveFighterPortrait(name, imageUrl) {
   const current = await loadRegistryOverlay();
   current[name] = { image: imageUrl };
 
-  await put(FIGHTERS_REGISTRY_BLOB, JSON.stringify({ fighters: current }, null, 2), {
-    access: 'private',
-    addRandomSuffix: false,
-    allowOverwrite: true,
-    contentType: 'application/json',
-    ...getBlobCallOptions(),
-  });
+  await putBlob(
+    FIGHTERS_REGISTRY_BLOB,
+    JSON.stringify({ fighters: current }, null, 2),
+    'application/json'
+  );
 
   return imageUrl;
 }

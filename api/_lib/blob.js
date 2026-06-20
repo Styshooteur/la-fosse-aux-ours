@@ -1,3 +1,5 @@
+import { put } from '@vercel/blob';
+
 /** Chemin API pour afficher un portrait stocké en Blob privé. */
 export function portraitApiPath(blobPathname) {
   return `/api/portrait?path=${encodeURIComponent(blobPathname)}`;
@@ -25,6 +27,41 @@ export function getBlobCallOptions() {
     opts.oidcToken = process.env.VERCEL_OIDC_TOKEN;
   }
   return opts;
+}
+
+/** Upload Blob — essaie public puis private selon la config du store. */
+export async function putBlob(pathname, body, contentType) {
+  const base = {
+    addRandomSuffix: false,
+    allowOverwrite: true,
+    contentType,
+    ...getBlobCallOptions(),
+  };
+
+  let lastError = null;
+  for (const access of ['public', 'private']) {
+    try {
+      const blob = await put(pathname, body, { ...base, access });
+      return { blob, access };
+    } catch (error) {
+      lastError = error;
+      const msg = error.message || '';
+      if (/access must be|private store|public access|cannot use public/i.test(msg)) {
+        continue;
+      }
+      throw error;
+    }
+  }
+
+  throw lastError || new Error('Impossible de joindre le store Vercel Blob.');
+}
+
+/** URL affichable sur le site selon le mode du store. */
+export function imageUrlForBlob(blob, pathname, access) {
+  if (access === 'private') {
+    return portraitApiPath(pathname);
+  }
+  return blob.url;
 }
 
 export function blobSetupHint() {
