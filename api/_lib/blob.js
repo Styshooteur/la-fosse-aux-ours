@@ -1,29 +1,37 @@
-/** Options d'authentification pour @vercel/blob (OIDC prioritaire sur Vercel). */
-export function getBlobCallOptions() {
-  if (process.env.VERCEL_OIDC_TOKEN && process.env.BLOB_STORE_ID) {
-    return {
-      oidcToken: process.env.VERCEL_OIDC_TOKEN,
-      storeId: process.env.BLOB_STORE_ID,
-    };
-  }
-
-  if (process.env.BLOB_READ_WRITE_TOKEN) {
-    return { token: process.env.BLOB_READ_WRITE_TOKEN };
-  }
-
-  return null;
-}
-
+/** Store Blob connecté au projet (OIDC ou token statique). */
 export function isBlobConfigured() {
-  return getBlobCallOptions() !== null;
+  return Boolean(process.env.BLOB_STORE_ID || process.env.BLOB_READ_WRITE_TOKEN);
 }
 
-export function requireBlobOptions() {
-  const options = getBlobCallOptions();
-  if (!options) {
-    throw new Error(
-      'Blob non configuré : connectez le store Blob au projet et redéployez, ou ajoutez un BLOB_READ_WRITE_TOKEN valide.'
+/** Options passées à @vercel/blob — token valide prioritaire, sinon OIDC du store. */
+export function getBlobCallOptions() {
+  const token = process.env.BLOB_READ_WRITE_TOKEN?.trim();
+  if (token) {
+    return { token };
+  }
+
+  const storeId = process.env.BLOB_STORE_ID;
+  if (!storeId) {
+    return {};
+  }
+
+  const opts = { storeId };
+  if (process.env.VERCEL_OIDC_TOKEN) {
+    opts.oidcToken = process.env.VERCEL_OIDC_TOKEN;
+  }
+  return opts;
+}
+
+export function blobSetupHint() {
+  if (process.env.BLOB_STORE_ID && !process.env.BLOB_READ_WRITE_TOKEN) {
+    return (
+      'Le store Blob est connecté mais l\'authentification a échoué. ' +
+      'Storage → votre Blob → onglet .env.local → copiez BLOB_READ_WRITE_TOKEN → ' +
+      'Variables d\'environnement (Production) → redéployez.'
     );
   }
-  return options;
+  return (
+    'Connectez un store Vercel Blob au projet la-fosse-aux-ours-lvza, ' +
+    'ajoutez BLOB_READ_WRITE_TOKEN, puis redéployez.'
+  );
 }
