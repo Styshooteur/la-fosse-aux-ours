@@ -1,5 +1,4 @@
-import { head } from '@vercel/blob';
-import { getBlobCallOptions } from './_lib/blob.js';
+import { readBlobContent } from './_lib/blob.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -13,17 +12,14 @@ export default async function handler(req, res) {
   }
 
   try {
-    const meta = await head(path, getBlobCallOptions());
-    const sourceUrl = meta.downloadUrl || meta.url;
-    const upstream = await fetch(sourceUrl);
-    if (!upstream.ok) {
+    const content = await readBlobContent(path);
+    if (!content) {
       return res.status(404).end();
     }
 
-    res.setHeader('Content-Type', meta.contentType || 'application/octet-stream');
+    res.setHeader('Content-Type', content.contentType);
     res.setHeader('Cache-Control', 'public, max-age=86400');
-    const buffer = Buffer.from(await upstream.arrayBuffer());
-    return res.status(200).send(buffer);
+    return res.status(200).send(content.buffer);
   } catch {
     return res.status(404).end();
   }

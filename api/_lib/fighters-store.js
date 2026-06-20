@@ -1,7 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { head } from '@vercel/blob';
-import { getBlobCallOptions, isBlobConfigured, putBlob } from './blob.js';
+import { isBlobConfigured, putBlob, readBlobJson } from './blob.js';
 import { FIGHTERS_REGISTRY_BLOB } from './config.js';
 
 function loadBaseFighters() {
@@ -19,18 +18,8 @@ async function loadRegistryOverlay() {
     return {};
   }
 
-  try {
-    const meta = await head(FIGHTERS_REGISTRY_BLOB, getBlobCallOptions());
-    if (!meta?.url) return {};
-
-    const response = await fetch(meta.url, { cache: 'no-store' });
-    if (!response.ok) return {};
-
-    const data = await response.json();
-    return data.fighters || {};
-  } catch {
-    return {};
-  }
+  const data = await readBlobJson(FIGHTERS_REGISTRY_BLOB);
+  return data?.fighters || {};
 }
 
 export async function getFightersMap() {

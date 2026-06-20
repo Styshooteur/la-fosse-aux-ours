@@ -1,4 +1,4 @@
-import { put } from '@vercel/blob';
+import { get, put } from '@vercel/blob';
 
 /** Chemin API pour afficher un portrait stocké en Blob privé. */
 export function portraitApiPath(blobPathname) {
@@ -91,6 +91,53 @@ export function imageUrlForBlob(blob, pathname, access) {
     return portraitApiPath(pathname);
   }
   return blob.url;
+}
+
+/** Lit un fichier Blob (store privé ou public). */
+export async function readBlobContent(pathname) {
+  const forced = process.env.BLOB_ACCESS?.trim().toLowerCase();
+  const modes =
+    forced === 'private' || forced === 'public' ? [forced] : ['private', 'public'];
+
+  for (const access of modes) {
+    try {
+      const result = await get(pathname, {
+        access,
+        useCache: false,
+        ...getBlobCallOptions(),
+      });
+      if (!result?.stream) {
+        continue;
+      }
+
+      const buffer = Buffer.from(await new Response(result.stream).arrayBuffer());
+      return {
+        buffer,
+        contentType: result.blob?.contentType || 'application/octet-stream',
+      };
+    } catch (error) {
+      if (isWrongAccessMode(error.message || '', access)) {
+        continue;
+      }
+      throw error;
+    }
+  }
+
+  return null;
+}
+
+/** Lit un JSON stocké dans Blob. */
+export async function readBlobJson(pathname) {
+  const content = await readBlobContent(pathname);
+  if (!content) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(content.buffer.toString('utf-8'));
+  } catch {
+    return null;
+  }
 }
 
 export function blobSetupHint() {

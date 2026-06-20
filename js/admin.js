@@ -116,6 +116,8 @@ async function uploadPortrait(name, dataUrl) {
     }
 
     portraits[name] = { image: result.image };
+    // Recharger depuis le serveur pour confirmer l'enregistrement
+    portraits = await fetchFighterCards();
     renderAdminList();
     showStatus(`Portrait de ${name} enregistré.`);
   } catch (err) {
