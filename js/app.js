@@ -75,8 +75,20 @@ function escapeHtml(str) {
 }
 
 const RANK_ONE_CROWN = `<span class="rank-crown" aria-hidden="true" title="Champion du classement">
-  <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" focusable="false">
-    <path d="M3 18h18v2H3v-2zm2.2-8.4 2.8 3.4 3-5.2 3 5.2 2.8-3.4L19 18H5l.2-8.4zM5.5 7.5 3 4l3.5 1.2L12 3l5.5 2.2L21 4l-2.5 3.5L12 8 5.5 7.5z"/>
+  <svg viewBox="0 0 80 56" xmlns="http://www.w3.org/2000/svg" focusable="false">
+    <defs>
+      <linearGradient id="rankCrownGold" x1="40" y1="2" x2="40" y2="54" gradientUnits="userSpaceOnUse">
+        <stop offset="0%" stop-color="#f8df70"/>
+        <stop offset="50%" stop-color="#ebc42a"/>
+        <stop offset="100%" stop-color="#c9940c"/>
+      </linearGradient>
+    </defs>
+    <path fill="url(#rankCrownGold)" d="M9 45.5 6.5 29.5 17 37.5 22.5 13.5 31.5 36 40 5.5 48.5 36 57.5 13.5 63 37.5 73.5 29.5 71 45.5Q40 51.5 9 45.5Z"/>
+    <circle cx="22.5" cy="10.5" r="3.3" fill="url(#rankCrownGold)"/>
+    <circle cx="40" cy="4.2" r="4" fill="url(#rankCrownGold)"/>
+    <circle cx="57.5" cy="10.5" r="3.3" fill="url(#rankCrownGold)"/>
+    <path fill="none" stroke="#f5ead0" stroke-width="3" stroke-linecap="round" d="M15 41.5Q40 38 65 41.5"/>
+    <path fill="none" stroke="#f5ead0" stroke-width="3" stroke-linecap="round" d="M13 46.5Q40 43 67 46.5"/>
   </svg>
 </span>`;
 
