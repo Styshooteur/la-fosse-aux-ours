@@ -1,3 +1,8 @@
+/** Chemin API pour afficher un portrait stocké en Blob privé. */
+export function portraitApiPath(blobPathname) {
+  return `/api/portrait?path=${encodeURIComponent(blobPathname)}`;
+}
+
 /** Store Blob connecté au projet (OIDC ou token statique). */
 export function isBlobConfigured() {
   return Boolean(process.env.BLOB_STORE_ID || process.env.BLOB_READ_WRITE_TOKEN);

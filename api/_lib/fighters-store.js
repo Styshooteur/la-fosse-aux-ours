@@ -44,7 +44,7 @@ export async function saveFighterPortrait(name, imageUrl) {
   current[name] = { image: imageUrl };
 
   await put(FIGHTERS_REGISTRY_BLOB, JSON.stringify({ fighters: current }, null, 2), {
-    access: 'public',
+    access: 'private',
     addRandomSuffix: false,
     allowOverwrite: true,
     contentType: 'application/json',

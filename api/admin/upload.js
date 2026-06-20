@@ -1,6 +1,6 @@
 import { put } from '@vercel/blob';
 import { verifyPin } from '../_lib/admin.js';
-import { blobSetupHint, getBlobCallOptions, isBlobConfigured } from '../_lib/blob.js';
+import { blobSetupHint, getBlobCallOptions, isBlobConfigured, portraitApiPath } from '../_lib/blob.js';
 import { saveFighterPortrait } from '../_lib/fighters-store.js';
 import { slugify } from '../_lib/slugify.js';
 
@@ -47,17 +47,18 @@ export default async function handler(req, res) {
   try {
     const filename = `fighters/${slugify(fighterName)}.${ext}`;
     const blob = await put(filename, binary, {
-      access: 'public',
+      access: 'private',
       addRandomSuffix: false,
       allowOverwrite: true,
       contentType: `image/${ext === 'jpg' ? 'jpeg' : ext}`,
       ...getBlobCallOptions(),
     });
 
-    await saveFighterPortrait(fighterName, blob.url);
+    const publicImagePath = portraitApiPath(filename);
+    await saveFighterPortrait(fighterName, publicImagePath);
 
     res.setHeader('Cache-Control', 'no-store');
-    return res.status(200).json({ ok: true, image: blob.url });
+    return res.status(200).json({ ok: true, image: publicImagePath });
   } catch (error) {
     const msg = error.message || 'Erreur upload.';
     if (/token|access denied|unauthorized/i.test(msg)) {
