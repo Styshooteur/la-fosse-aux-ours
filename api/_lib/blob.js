@@ -15,8 +15,8 @@ export function isBlobConfigured() {
 }
 
 /**
- * Auth Blob pour @vercel/blob.
- * Sur Vercel, OIDC + BLOB_STORE_ID prime sur un token manuel (souvent périmé).
+ * Identifiants pour parler à Vercel Blob.
+ * Sur Vercel, on utilise la connexion automatique du projet (OIDC).
  */
 export function getBlobCallOptions() {
   const storeId = process.env.BLOB_STORE_ID?.trim();
@@ -37,25 +37,52 @@ export function getBlobCallOptions() {
   return {};
 }
 
-/** Mode d'accès du store — public par défaut (store actuel du projet). */
-export function getBlobAccess() {
-  const mode = process.env.BLOB_ACCESS?.trim().toLowerCase();
-  return mode === 'private' ? 'private' : 'public';
+function isWrongAccessMode(message, attemptedAccess) {
+  const msg = message.toLowerCase();
+  if (attemptedAccess === 'public') {
+    return msg.includes('private store') || msg.includes('cannot use public');
+  }
+  if (attemptedAccess === 'private') {
+    return (
+      msg.includes('must be "public"') ||
+      msg.includes('cannot use private') ||
+      (msg.includes('access must be') && msg.includes('public'))
+    );
+  }
+  return false;
 }
 
-/** Upload Blob avec le bon mode d'accès (sans retry ambigu). */
+/**
+ * Upload — détecte automatiquement si le store est privé ou public.
+ * Aucun réglage manuel requis de votre part.
+ */
 export async function putBlob(pathname, body, contentType) {
-  const access = getBlobAccess();
-
-  const blob = await put(pathname, body, {
+  const base = {
     addRandomSuffix: false,
     allowOverwrite: true,
     contentType,
     ...getBlobCallOptions(),
-    access,
-  });
+  };
 
-  return { blob, access };
+  const forced = process.env.BLOB_ACCESS?.trim().toLowerCase();
+  const modes =
+    forced === 'private' || forced === 'public' ? [forced] : ['private', 'public'];
+
+  let lastError = null;
+  for (const access of modes) {
+    try {
+      const blob = await put(pathname, body, { ...base, access });
+      return { blob, access };
+    } catch (error) {
+      lastError = error;
+      if (isWrongAccessMode(error.message || '', access)) {
+        continue;
+      }
+      throw error;
+    }
+  }
+
+  throw lastError || new Error('Impossible de joindre le stockage Vercel Blob.');
 }
 
 /** URL affichable sur le site selon le mode du store. */
@@ -67,16 +94,8 @@ export function imageUrlForBlob(blob, pathname, access) {
 }
 
 export function blobSetupHint() {
-  if (process.env.BLOB_STORE_ID && !process.env.BLOB_READ_WRITE_TOKEN) {
-    return (
-      'Le store Blob est connecté mais l\'authentification a échoué. ' +
-      'Storage → votre Blob → onglet .env.local → copiez BLOB_READ_WRITE_TOKEN → ' +
-      'Variables d\'environnement (Production) → redéployez. ' +
-      'Ou supprimez BLOB_READ_WRITE_TOKEN si le store est connecté via OIDC.'
-    );
-  }
   return (
-    'Connectez un store Vercel Blob public au projet la-fosse-aux-ours-lvza, ' +
-    'vérifiez BLOB_STORE_ID / BLOB_READ_WRITE_TOKEN, puis redéployez.'
+    'Le stockage d\'images (Vercel Blob) n\'est pas correctement connecté au site. ' +
+    'Sur vercel.com → projet la-fosse-aux-ours-lvza → Storage → vérifiez que le Blob est bien connecté, puis redéployez.'
   );
 }
