@@ -74,6 +74,12 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
+const RANK_ONE_CROWN = `<span class="rank-crown" aria-hidden="true" title="Champion du classement">
+  <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" focusable="false">
+    <path d="M3 18h18v2H3v-2zm2.2-8.4 2.8 3.4 3-5.2 3 5.2 2.8-3.4L19 18H5l.2-8.4zM5.5 7.5 3 4l3.5 1.2L12 3l5.5 2.2L21 4l-2.5 3.5L12 8 5.5 7.5z"/>
+  </svg>
+</span>`;
+
 function renderLeaderboard(fighters) {
   fightersData = fighters;
   const tbody = $('leaderboard-body');
@@ -81,13 +87,15 @@ function renderLeaderboard(fighters) {
     .map(
       (f, i) => {
         const gradeClass = gradeToClass(f.grade);
+        const isFirst = Number(f.rang) === 1;
+        const crown = isFirst ? RANK_ONE_CROWN : '';
         return `
     <tr>
       <td>${escapeHtml(String(f.rang))}</td>
       <td class="grade-cell"><span class="grade-badge ${gradeClass}">${escapeHtml(f.grade)}</span></td>
       <td>
         <button type="button" class="fighter-link" data-index="${i}">
-          ${escapeHtml(f.combattant)}
+          ${crown}${escapeHtml(f.combattant)}
         </button>
       </td>
       <td>${escapeHtml(String(f.points))}</td>

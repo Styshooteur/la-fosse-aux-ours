@@ -411,6 +411,9 @@ body {
 }
 
 .fighter-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
   font-family: var(--font-body);
   font-weight: 600;
   color: var(--ink);
@@ -424,6 +427,21 @@ body {
   text-decoration-color: rgba(122, 26, 26, 0.35);
   text-underline-offset: 3px;
   transition: color 0.2s, text-decoration-color 0.2s;
+}
+
+.rank-crown {
+  flex-shrink: 0;
+  display: inline-flex;
+  width: 1.05em;
+  height: 1.05em;
+  color: #c49d10;
+  filter: drop-shadow(0 1px 1px rgba(180, 130, 0, 0.35));
+}
+
+.rank-crown svg {
+  width: 100%;
+  height: 100%;
+  fill: currentColor;
 }
 
 .fighter-link:hover {
