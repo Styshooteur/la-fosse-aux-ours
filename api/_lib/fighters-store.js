@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { head, put } from '@vercel/blob';
+import { isBlobConfigured } from './blob.js';
 import { FIGHTERS_REGISTRY_BLOB } from './config.js';
 
 function loadBaseFighters() {
@@ -14,7 +15,7 @@ function loadBaseFighters() {
 }
 
 async function loadRegistryOverlay() {
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+  if (!isBlobConfigured()) {
     return {};
   }
 
@@ -39,9 +40,9 @@ export async function getFightersMap() {
 }
 
 export async function saveFighterPortrait(name, imageUrl) {
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+  if (!isBlobConfigured()) {
     throw new Error(
-      'Stockage Blob non configuré. Activez Vercel Blob dans le projet (Storage → Blob).'
+      'Stockage Blob non configuré. Connectez un store Blob au projet puis redéployez.'
     );
   }
 

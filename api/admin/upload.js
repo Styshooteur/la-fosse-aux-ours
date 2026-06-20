@@ -1,5 +1,6 @@
 import { put } from '@vercel/blob';
 import { verifyPin } from '../_lib/admin.js';
+import { isBlobConfigured } from '../_lib/blob.js';
 import { saveFighterPortrait } from '../_lib/fighters-store.js';
 import { slugify } from '../_lib/slugify.js';
 
@@ -39,10 +40,10 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: "Impossible de décoder l'image." });
   }
 
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+  if (!isBlobConfigured()) {
     return res.status(503).json({
       error:
-        'Upload indisponible : connectez un store Vercel Blob au projet (Storage → Create → Blob).',
+        'Upload indisponible : connectez un store Vercel Blob au projet, puis redéployez.',
     });
   }
 
