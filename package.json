@@ -1,0 +1,14 @@
+{
+  "name": "la-fosse-aux-ours",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Registre des combattants — La Fosse aux Ours, Vendeaume",
+  "scripts": {
+    "start": "python server.py",
+    "dev": "python server.py"
+  },
+  "dependencies": {
+    "@vercel/blob": "^0.27.3"
+  }
+}

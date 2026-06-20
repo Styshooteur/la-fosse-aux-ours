@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 280" fill="none">
+  <rect width="200" height="280" fill="#1a1612"/>
+  <rect x="8" y="8" width="184" height="264" stroke="#7a6528" stroke-width="2" fill="none"/>
+  <ellipse cx="100" cy="85" rx="45" ry="52" fill="#3d3428"/>
+  <path d="M35 260 Q35 160 100 150 Q165 160 165 260" fill="#2a2219"/>
+  <text x="100" y="240" text-anchor="middle" font-family="serif" font-size="11" fill="#8a7020">SKORGUL</text>
+</svg>

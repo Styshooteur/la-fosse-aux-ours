@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 280" fill="none">
+  <rect width="200" height="280" fill="#1a1612"/>
+  <rect x="8" y="8" width="184" height="264" stroke="#7a6528" stroke-width="2" fill="none"/>
+  <ellipse cx="100" cy="85" rx="40" ry="48" fill="#4a3c28"/>
+  <rect x="75" y="60" width="50" height="12" rx="2" fill="#6b5a40"/>
+  <path d="M40 260 Q40 165 100 155 Q160 165 160 260" fill="#2e261c"/>
+  <text x="100" y="240" text-anchor="middle" font-family="serif" font-size="11" fill="#8a7020">BALD</text>
+</svg>

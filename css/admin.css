@@ -1,0 +1,671 @@
+/* Administration des portraits */
+
+.admin-page {
+  padding-top: 2rem;
+  padding-bottom: 4rem;
+}
+
+.admin-header {
+  text-align: center;
+  margin-bottom: 2.5rem;
+  padding: 2rem 1.5rem;
+  border: 2px solid var(--ink);
+  outline: 1px solid var(--gold-antique);
+  outline-offset: 4px;
+  background:
+    var(--paper-speckle),
+    var(--paper-fiber),
+    linear-gradient(180deg, rgba(255, 250, 238, 0.97), rgba(228, 210, 175, 0.98));
+  box-shadow: var(--shadow-parchment);
+}
+
+.admin-header h1 {
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  color: var(--ink);
+  letter-spacing: 0.06em;
+}
+
+.admin-subtitle {
+  font-style: italic;
+  color: var(--ink-muted);
+  margin-top: 0.35rem;
+}
+
+.admin-back {
+  display: inline-block;
+  margin-top: 1rem;
+  font-family: var(--font-display);
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  color: var(--crimson);
+  text-decoration: none;
+}
+
+.admin-back:hover {
+  text-decoration: underline;
+}
+
+.admin-auth {
+  max-width: 420px;
+  margin: 0 auto 2rem;
+  padding: 1.5rem;
+  border: 2px solid var(--ink);
+  background:
+    var(--paper-speckle),
+    var(--paper-fiber),
+    linear-gradient(180deg, rgba(255, 250, 238, 0.97), rgba(228, 210, 175, 0.98));
+}
+
+.admin-auth label {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  margin-bottom: 0.5rem;
+}
+
+.admin-auth-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.admin-auth input {
+  flex: 1;
+  font-family: var(--font-body);
+  font-size: 1rem;
+  padding: 0.5rem 0.75rem;
+  border: 1.5px solid var(--ink);
+  background: rgba(255, 252, 242, 0.8);
+  color: var(--ink);
+}
+
+.admin-auth button,
+.admin-upload-btn {
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--parchment-light);
+  background: var(--ink-soft);
+  border: 1.5px solid var(--ink);
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.admin-auth button:hover,
+.admin-upload-btn:hover {
+  background: var(--crimson);
+}
+
+.admin-hint {
+  margin-top: 0.75rem;
+  font-size: 0.85rem;
+  color: var(--ink-muted);
+  font-style: italic;
+}
+
+.admin-note {
+  text-align: center;
+  font-style: italic;
+  color: var(--ink-muted);
+  margin-bottom: 1.5rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid rgba(60, 40, 25, 0.2);
+  background: rgba(255, 252, 242, 0.5);
+}
+
+.admin-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.admin-item {
+  display: grid;
+  grid-template-columns: 80px 1fr auto;
+  gap: 1rem;
+  align-items: center;
+  padding: 1rem;
+  border: 2px solid var(--ink);
+  background:
+    var(--paper-speckle),
+    var(--paper-fiber),
+    linear-gradient(180deg, rgba(255, 250, 238, 0.97), rgba(228, 210, 175, 0.98));
+}
+
+.admin-thumb {
+  width: 80px;
+  height: 96px;
+  object-fit: cover;
+  border: 1.5px solid var(--ink);
+  background: rgba(40, 28, 18, 0.08);
+  filter: sepia(0.15);
+}
+
+.admin-thumb--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  font-family: var(--font-display);
+  color: var(--ink-muted);
+  text-align: center;
+  padding: 0.25rem;
+}
+
+.admin-item-info h3 {
+  font-family: var(--font-body);
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.admin-item-info p {
+  font-size: 0.85rem;
+  color: var(--ink-muted);
+  margin-top: 0.2rem;
+}
+
+.admin-item-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  align-items: flex-end;
+}
+
+.admin-item-actions input[type="file"] {
+  font-size: 0.75rem;
+  max-width: 180px;
+}
+
+.admin-upload-btn:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+
+.admin-file-hint {
+  font-size: 0.75rem;
+  color: var(--ink-muted);
+  font-style: italic;
+  text-align: right;
+}
+
+/* ── Éditeur de portrait ── */
+
+.editor-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: rgba(10, 5, 2, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.editor-dialog {
+  width: min(480px, 100%);
+  padding: 1.25rem;
+  border: 2px solid var(--ink);
+  outline: 1px solid var(--gold-antique);
+  outline-offset: 4px;
+  background:
+    var(--paper-speckle),
+    var(--paper-fiber),
+    linear-gradient(180deg, rgba(255, 250, 238, 0.98), rgba(228, 210, 175, 0.99));
+  box-shadow: var(--shadow-deep);
+}
+
+.editor-title {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  color: var(--ink);
+  text-align: center;
+  letter-spacing: 0.05em;
+}
+
+.editor-instructions {
+  text-align: center;
+  font-size: 0.82rem;
+  color: var(--ink-muted);
+  font-style: italic;
+  margin: 0.5rem 0 1rem;
+}
+
+.editor-viewport {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 857 / 1024;
+  max-height: 55vh;
+  margin: 0 auto;
+  border: 2px solid var(--ink);
+  background: #d8c4a0;
+  overflow: hidden;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.editor-viewport.is-dragging {
+  cursor: grabbing;
+}
+
+.editor-viewport img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: top left;
+  pointer-events: none;
+  max-width: none;
+}
+
+.editor-controls {
+  margin-top: 1rem;
+}
+
+.editor-zoom-label {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+.editor-zoom-label input[type="range"] {
+  flex: 1;
+  accent-color: var(--crimson);
+}
+
+.editor-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+  justify-content: flex-end;
+}
+
+.editor-btn {
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 0.55rem 1rem;
+  border: 1.5px solid var(--ink);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.editor-btn--cancel {
+  background: transparent;
+  color: var(--ink-soft);
+}
+
+.editor-btn--cancel:hover {
+  background: rgba(60, 40, 25, 0.1);
+}
+
+.editor-btn--save {
+  background: var(--ink-soft);
+  color: var(--parchment-light);
+}
+
+.editor-btn--save:hover {
+  background: var(--crimson);
+}
+
+.admin-status {
+  position: fixed;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0.75rem 1.5rem;
+  background: var(--ink);
+  color: var(--parchment-light);
+  font-family: var(--font-display);
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  box-shadow: var(--shadow-deep);
+  z-index: 100;
+}
+
+.admin-status--error {
+  background: var(--crimson);
+}
+
+/* ── Onglets admin ── */
+
+.admin-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 2px solid var(--ink);
+  padding-bottom: 0;
+}
+
+.admin-tab {
+  font-family: var(--font-display);
+  font-size: 0.78rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  background: rgba(255, 252, 242, 0.45);
+  border: 1.5px solid rgba(60, 40, 25, 0.25);
+  border-bottom: none;
+  padding: 0.65rem 1.15rem;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+  margin-bottom: -2px;
+}
+
+.admin-tab:hover {
+  color: var(--ink);
+  background: rgba(255, 252, 242, 0.75);
+}
+
+.admin-tab--active {
+  color: var(--ink);
+  background:
+    var(--paper-speckle),
+    var(--paper-fiber),
+    linear-gradient(180deg, rgba(255, 250, 238, 0.97), rgba(228, 210, 175, 0.98));
+  border-color: var(--ink);
+  border-bottom: 2px solid rgba(245, 234, 208, 1);
+  font-weight: 600;
+}
+
+.admin-tab-panel.hidden {
+  display: none;
+}
+
+/* ── Calculateur Elo ── */
+
+.elo-calculator {
+  max-width: 920px;
+  margin: 0 auto;
+}
+
+.elo-fighters-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.elo-fighter-card {
+  padding: 1.15rem;
+  border: 2px solid var(--ink);
+  background:
+    var(--paper-speckle),
+    var(--paper-fiber),
+    linear-gradient(180deg, rgba(255, 250, 238, 0.97), rgba(228, 210, 175, 0.98));
+  box-shadow: 2px 3px 8px rgba(20, 10, 5, 0.18);
+}
+
+.elo-fighter-title {
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--crimson);
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(60, 40, 25, 0.2);
+}
+
+.elo-field {
+  display: block;
+  margin-bottom: 0.85rem;
+}
+
+.elo-field:last-child {
+  margin-bottom: 0;
+}
+
+.elo-field span {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  margin-bottom: 0.35rem;
+}
+
+.elo-field input {
+  width: 100%;
+  font-family: var(--font-body);
+  font-size: 1rem;
+  padding: 0.5rem 0.65rem;
+  border: 1.5px solid var(--ink);
+  background: rgba(255, 252, 242, 0.85);
+  color: var(--ink);
+}
+
+.elo-field input:focus {
+  outline: 2px solid rgba(122, 26, 26, 0.35);
+  outline-offset: 1px;
+}
+
+.elo-winner-section {
+  margin-bottom: 1.25rem;
+}
+
+.elo-section-title {
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink);
+  text-align: center;
+  margin-bottom: 0.75rem;
+}
+
+.elo-winner-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.elo-winner-btn {
+  font-family: var(--font-display);
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.75rem 1rem;
+  border: 2px solid var(--ink);
+  background: rgba(255, 252, 242, 0.6);
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+}
+
+.elo-winner-btn:hover {
+  background: rgba(255, 252, 242, 0.9);
+}
+
+.elo-winner-btn--selected {
+  background: var(--ink-soft);
+  color: var(--parchment-light);
+  box-shadow: 3px 3px 0 var(--gold-antique);
+}
+
+.elo-calc-btn {
+  display: block;
+  width: 100%;
+  font-family: var(--font-display);
+  font-size: 0.82rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 0.85rem 1rem;
+  border: 2px solid var(--ink);
+  background: var(--crimson);
+  color: var(--parchment-light);
+  cursor: pointer;
+  transition: background 0.2s;
+  box-shadow: 3px 3px 0 var(--gold-antique);
+}
+
+.elo-calc-btn:hover {
+  background: var(--crimson-bright);
+}
+
+.elo-error {
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  border: 1.5px solid var(--crimson);
+  background: rgba(122, 26, 26, 0.08);
+  color: var(--crimson);
+  font-style: italic;
+  text-align: center;
+}
+
+.elo-error.hidden {
+  display: none;
+}
+
+.elo-results {
+  margin-top: 1.75rem;
+}
+
+.elo-results.hidden {
+  display: none;
+}
+
+.elo-results-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.elo-result-card {
+  padding: 1.15rem;
+  border: 2px solid var(--ink);
+  background:
+    var(--paper-speckle),
+    var(--paper-fiber),
+    linear-gradient(180deg, rgba(255, 250, 238, 0.97), rgba(228, 210, 175, 0.98));
+  text-align: center;
+}
+
+.elo-result-name {
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  letter-spacing: 0.06em;
+  color: var(--ink);
+  margin-bottom: 0.65rem;
+}
+
+.elo-result-new {
+  font-size: 1rem;
+  color: var(--ink-soft);
+  margin-bottom: 0.35rem;
+}
+
+.elo-result-new strong {
+  font-family: var(--font-display);
+  font-size: 1.45rem;
+  color: var(--crimson);
+}
+
+.elo-result-delta {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  letter-spacing: 0.04em;
+}
+
+.elo-result-delta--positive {
+  color: #2f9656;
+}
+
+.elo-result-delta--negative {
+  color: var(--crimson);
+}
+
+.elo-details {
+  padding: 1.15rem 1.25rem;
+  border: 2px solid var(--ink);
+  background: rgba(255, 252, 242, 0.55);
+}
+
+.elo-details h4 {
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  margin-bottom: 0.85rem;
+  text-align: center;
+}
+
+.elo-details-list {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.elo-details-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.5rem 1rem;
+  font-size: 0.92rem;
+  color: var(--ink-soft);
+  padding: 0.45rem 0;
+  border-bottom: 1px solid rgba(60, 40, 25, 0.12);
+}
+
+.elo-details-row:last-child {
+  border-bottom: none;
+}
+
+.elo-details-label {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.elo-details-value {
+  text-align: right;
+  font-family: var(--font-body);
+}
+
+@media (max-width: 700px) {
+  .admin-tabs {
+    flex-direction: column;
+    border-bottom: none;
+    gap: 0.35rem;
+  }
+
+  .admin-tab {
+    border-bottom: 1.5px solid rgba(60, 40, 25, 0.25);
+    margin-bottom: 0;
+  }
+
+  .admin-tab--active {
+    border-bottom-color: var(--ink);
+  }
+
+  .elo-fighters-grid,
+  .elo-results-grid,
+  .elo-winner-buttons {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .admin-item {
+    grid-template-columns: 64px 1fr;
+    grid-template-rows: auto auto;
+  }
+
+  .admin-item-actions {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+}

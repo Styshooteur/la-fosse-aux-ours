@@ -1,0 +1,10 @@
+{
+  "fighters": {
+    "Skorgul gro-Thormog": {
+      "image": "assets/fighters/skorgul-gro-thormog.jpg"
+    },
+    "Bald Forgecoeur": {
+      "image": "assets/fighters/bald-forgecoeur.png"
+    }
+  }
+}

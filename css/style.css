@@ -1,0 +1,791 @@
+/* La Fosse aux Ours — Direction artistique parchemin médiéval */
+
+:root {
+  /* Parchemin */
+  --parchment-light: #f2e6cc;
+  --parchment: #e4d4b0;
+  --parchment-mid: #d4bc8e;
+  --parchment-dark: #c4a574;
+  --parchment-stain: #a88858;
+
+  /* Encre & bois */
+  --ink: #1c1208;
+  --ink-soft: #3d2e1e;
+  --ink-muted: #6b5340;
+  --wood: #2a1810;
+  --wood-light: #3d2418;
+  --wood-grain: #1a0e08;
+
+  /* Accents — affiches de référence */
+  --crimson: #7a1a1a;
+  --crimson-bright: #9c2828;
+  --gold-antique: #8b6914;
+  --gold-light: #b8943a;
+  --gold-pale: #d4b060;
+
+  /* Utilitaires */
+  --shadow-parchment: 0 4px 24px rgba(20, 10, 5, 0.45), 0 1px 0 rgba(255, 248, 230, 0.4) inset;
+  --shadow-deep: 0 12px 40px rgba(0, 0, 0, 0.55);
+  --font-gothic: 'UnifrakturMaguntia', 'MedievalSharp', serif;
+  --font-display: 'MedievalSharp', serif;
+  --font-body: 'EB Garamond', Georgia, 'Times New Roman', serif;
+
+  /* Texture parchemin (CSS only) — sans image, sans texte */
+  --paper-solid: #f5ead0;
+  --paper-solid-light: #faf3e4;
+  --paper-base: linear-gradient(180deg, #faf3e4, #f0e0c0);
+  --paper-speckle:
+    radial-gradient(circle at 14% 22%, rgba(90, 60, 35, 0.10) 0 1px, transparent 2px),
+    radial-gradient(circle at 62% 36%, rgba(90, 60, 35, 0.08) 0 1px, transparent 2px),
+    radial-gradient(circle at 78% 72%, rgba(90, 60, 35, 0.09) 0 1px, transparent 2px),
+    radial-gradient(circle at 28% 78%, rgba(90, 60, 35, 0.06) 0 1px, transparent 2px);
+  --paper-fiber:
+    repeating-linear-gradient(0deg, rgba(90, 60, 35, 0.025) 0 1px, transparent 1px 6px),
+    repeating-linear-gradient(90deg, rgba(90, 60, 35, 0.02) 0 1px, transparent 1px 9px);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-body);
+  font-size: 1.12rem;
+  line-height: 1.65;
+  color: var(--ink);
+  background: #c4a574;
+  min-height: 100vh;
+  position: relative;
+}
+
+/* ── Fond (clair, pas sombre) ── */
+
+.bg-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(ellipse at 50% 20%, rgba(255, 248, 230, 0.25) 0%, transparent 55%),
+    linear-gradient(180deg, #d4bc8e 0%, #c4a574 50%, #b89868 100%);
+}
+
+/* ── Panneau parchemin réutilisable ── */
+
+.parchment-surface {
+  background:
+    var(--paper-speckle),
+    var(--paper-fiber),
+    linear-gradient(
+      175deg,
+      rgba(255, 248, 230, 0.92) 0%,
+      rgba(235, 215, 175, 0.96) 45%,
+      rgba(220, 195, 150, 0.94) 100%
+    );
+  box-shadow: var(--shadow-parchment);
+}
+
+/* ── Hero ── */
+
+.hero {
+  text-align: center;
+  padding: 3.5rem 1.5rem 2.5rem;
+  position: relative;
+  margin: 1.5rem 1.5rem 0;
+  border: 2px solid var(--ink);
+  outline: 1px solid var(--gold-antique);
+  outline-offset: 4px;
+  background:
+    var(--paper-speckle),
+    var(--paper-fiber),
+    var(--paper-base);
+  box-shadow: var(--shadow-deep);
+}
+
+.hero::before,
+.hero::after {
+  content: '✦';
+  position: absolute;
+  font-size: 0.85rem;
+  color: var(--crimson);
+  opacity: 0.7;
+}
+
+.hero::before { top: 0.75rem; left: 1rem; }
+.hero::after { top: 0.75rem; right: 1rem; }
+
+.hero-ornament {
+  width: min(360px, 75%);
+  height: 1px;
+  margin: 0 auto;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--ink-muted) 20%,
+    var(--crimson) 50%,
+    var(--ink-muted) 80%,
+    transparent
+  );
+  position: relative;
+}
+
+.hero-ornament::after {
+  content: '◆';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 0.55rem;
+  color: var(--crimson);
+  background: var(--parchment-light);
+  padding: 0 0.4rem;
+  line-height: 1;
+}
+
+.hero-ornament.top { margin-bottom: 1.75rem; }
+.hero-ornament.bottom { margin-top: 1.75rem; }
+
+.hero-title {
+  font-family: var(--font-gothic);
+  font-size: clamp(2.4rem, 7vw, 4.2rem);
+  font-weight: 400;
+  color: var(--ink);
+  line-height: 1.1;
+  letter-spacing: 0.02em;
+  text-shadow: 1px 1px 0 rgba(255, 248, 230, 0.5);
+  max-width: 20ch;
+  margin: 0 auto;
+}
+
+/* UnifrakturMaguntia confond visuellement x et r — x en police lisible */
+.hero-title-x {
+  font-family: var(--font-display);
+  font-size: 0.92em;
+  letter-spacing: 0;
+}
+
+.hero-divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 1.25rem 0;
+  gap: 0.75rem;
+}
+
+.hero-divider::before,
+.hero-divider::after {
+  content: '';
+  flex: 1;
+  max-width: 100px;
+  height: 1px;
+  background: var(--ink-muted);
+  opacity: 0.5;
+}
+
+.divider-gem {
+  width: 8px;
+  height: 8px;
+  background: var(--crimson);
+  transform: rotate(45deg);
+  box-shadow: 0 0 0 1px var(--ink);
+}
+
+.hero-tagline {
+  font-family: var(--font-body);
+  font-style: italic;
+  font-size: 1.05rem;
+  color: var(--ink-muted);
+  letter-spacing: 0.04em;
+}
+
+/* ── Layout ── */
+
+.container {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 4rem;
+  background:
+    var(--paper-speckle),
+    var(--paper-fiber),
+    var(--paper-solid);
+  border: 2px solid var(--ink);
+  outline: 1px solid var(--gold-antique);
+  outline-offset: 4px;
+  box-shadow: var(--shadow-deep);
+  border-radius: 2px;
+}
+
+/* ── Stats Panel ── */
+
+.stats-panel {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(148px, 1fr));
+  gap: 0.85rem;
+  margin-bottom: 2.5rem;
+}
+
+.stat-card {
+  background:
+    var(--paper-speckle),
+    var(--paper-fiber),
+    linear-gradient(160deg, rgba(255, 250, 238, 0.96), rgba(228, 210, 175, 0.98));
+  border: 1.5px solid var(--ink);
+  padding: 1.1rem 0.85rem;
+  text-align: center;
+  position: relative;
+  box-shadow: 2px 3px 8px rgba(20, 10, 5, 0.25);
+}
+
+.stat-card::before {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border: 1px solid var(--gold-antique);
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.stat-label {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  margin-bottom: 0.35rem;
+}
+
+.stat-value {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 1.55rem;
+  font-weight: 400;
+  color: var(--crimson);
+}
+
+.stat-value--small {
+  font-family: var(--font-body);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+/* ── Leaderboard Section ── */
+
+.leaderboard-section {
+  margin-bottom: 2.5rem;
+  padding: 0;
+  background: transparent;
+  border: none;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid var(--ink);
+}
+
+.section-header h2 {
+  font-family: var(--font-display);
+  font-size: 1.65rem;
+  color: var(--ink);
+  letter-spacing: 0.06em;
+}
+
+.section-note {
+  font-size: 0.95rem;
+  color: var(--ink);
+  font-style: italic;
+  margin-bottom: 1rem;
+  background: #fff8ee;
+  border: 1px solid var(--ink);
+  padding: 0.65rem 0.85rem;
+}
+
+.btn-refresh {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--parchment-light);
+  background: var(--ink-soft);
+  border: 1.5px solid var(--ink);
+  padding: 0.45rem 0.9rem;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+  box-shadow: 2px 2px 0 var(--gold-antique);
+}
+
+.btn-refresh:hover {
+  background: var(--crimson);
+  color: var(--parchment-light);
+}
+
+.btn-refresh:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+/* ── Table ── */
+
+.table-wrapper {
+  border: 1.5px solid var(--ink);
+  background: transparent;
+  position: relative;
+  overflow-x: auto;
+  box-shadow: 2px 3px 8px rgba(20, 10, 5, 0.2);
+}
+
+.leaderboard {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.98rem;
+}
+
+.leaderboard thead {
+  background: rgba(60, 40, 25, 0.06);
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.leaderboard th {
+  font-family: var(--font-display);
+  font-size: 0.7rem;
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink);
+  padding: 0.9rem 0.75rem;
+  text-align: left;
+  border-bottom: 2px solid var(--ink);
+  white-space: nowrap;
+}
+
+.leaderboard td {
+  padding: 0.65rem 0.75rem;
+  border-bottom: 1px solid rgba(60, 40, 25, 0.15);
+  vertical-align: middle;
+  color: var(--ink-soft);
+}
+
+.leaderboard tbody tr {
+  transition: background 0.15s;
+  background: transparent;
+}
+
+.leaderboard tbody tr:nth-child(even) {
+  background: rgba(60, 40, 25, 0.03);
+}
+
+.leaderboard tbody tr:hover {
+  background: rgba(60, 40, 25, 0.07);
+}
+
+.leaderboard td.grade-cell {
+  padding: 0.45rem 0.6rem;
+}
+
+.leaderboard td:first-child {
+  font-family: var(--font-display);
+  font-weight: 400;
+  color: var(--crimson);
+  text-align: center;
+  width: 3rem;
+  font-size: 1rem;
+}
+
+.fighter-link {
+  font-family: var(--font-body);
+  font-weight: 600;
+  color: var(--ink);
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font-size: inherit;
+  padding: 0;
+  text-decoration: underline;
+  text-decoration-color: rgba(122, 26, 26, 0.35);
+  text-underline-offset: 3px;
+  transition: color 0.2s, text-decoration-color 0.2s;
+}
+
+.fighter-link:hover {
+  color: var(--crimson);
+  text-decoration-color: var(--crimson);
+}
+
+.grade-badge {
+  display: inline-block;
+  font-family: var(--font-display);
+  font-size: 0.65rem;
+  letter-spacing: 0.06em;
+  padding: 0.22rem 0.55rem;
+  border: 1px solid rgba(60, 40, 25, 0.18);
+  white-space: nowrap;
+  color: var(--ink-soft);
+  line-height: 1.2;
+}
+
+/* Couleurs des grades — fond du rectangle (teinte exacte, texte lisible) */
+.grade-badge.grade-honte-de-l-arene { background-color: color-mix(in srgb, #3b3f40 38%, #f5ead0); }
+.grade-badge.grade-novice { background-color: color-mix(in srgb, #495052 38%, #f5ead0); }
+.grade-badge.grade-sang-frais { background-color: color-mix(in srgb, #677578 38%, #f5ead0); }
+.grade-badge.grade-aspirant { background-color: color-mix(in srgb, #78551d 38%, #f5ead0); }
+.grade-badge.grade-combattant { background-color: color-mix(in srgb, #8f6118 38%, #f5ead0); }
+.grade-badge.grade-bretteur { background-color: color-mix(in srgb, #94600d 38%, #f5ead0); }
+.grade-badge.grade-duelliste { background-color: color-mix(in srgb, #9fb5b1 38%, #f5ead0); }
+.grade-badge.grade-gladiateur { background-color: color-mix(in srgb, #abd1ca 38%, #f5ead0); }
+.grade-badge.grade-maitre-de-duel { background-color: color-mix(in srgb, #c49d10 38%, #f5ead0); }
+.grade-badge.grade-maitre-d-armes { background-color: color-mix(in srgb, #edbb07 38%, #f5ead0); }
+.grade-badge.grade-favori-d-estemarche { background-color: color-mix(in srgb, #de560d 38%, #f5ead0); }
+.grade-badge.grade-ours-d-estemarche { background-color: color-mix(in srgb, #bf280d 38%, #f5ead0); }
+.grade-badge.grade-champion-d-estemarche { background-color: color-mix(in srgb, #2f9656 38%, #f5ead0); }
+.grade-badge.grade-grand-champion-d-estemarche { background-color: color-mix(in srgb, #21b058 38%, #f5ead0); }
+.grade-badge.grade-legende-d-estemarche { background-color: color-mix(in srgb, #3bed7f 38%, #f5ead0); }
+
+/* Légende des grades */
+.grade-legend-item.grade-honte-de-l-arene { --grade-color: #3b3f40; }
+.grade-legend-item.grade-novice { --grade-color: #495052; }
+.grade-legend-item.grade-sang-frais { --grade-color: #677578; }
+.grade-legend-item.grade-aspirant { --grade-color: #78551d; }
+.grade-legend-item.grade-combattant { --grade-color: #8f6118; }
+.grade-legend-item.grade-bretteur { --grade-color: #94600d; }
+.grade-legend-item.grade-duelliste { --grade-color: #9fb5b1; }
+.grade-legend-item.grade-gladiateur { --grade-color: #abd1ca; }
+.grade-legend-item.grade-maitre-de-duel { --grade-color: #c49d10; }
+.grade-legend-item.grade-maitre-d-armes { --grade-color: #edbb07; }
+.grade-legend-item.grade-favori-d-estemarche { --grade-color: #de560d; }
+.grade-legend-item.grade-ours-d-estemarche { --grade-color: #bf280d; }
+.grade-legend-item.grade-champion-d-estemarche { --grade-color: #2f9656; }
+.grade-legend-item.grade-grand-champion-d-estemarche { --grade-color: #21b058; }
+.grade-legend-item.grade-legende-d-estemarche { --grade-color: #3bed7f; }
+
+.grade-legend-item[class*='grade-'] .grade-legend-label {
+  color: var(--ink-soft);
+  border-color: rgba(60, 40, 25, 0.18);
+  background-color: color-mix(in srgb, var(--grade-color) 38%, #f5ead0);
+}
+
+.grade-legend-item[class*='grade-'] .grade-legend-swatch {
+  background: var(--grade-color);
+  border-color: var(--grade-color);
+  opacity: 1;
+}
+
+/* ── Loading & Error ── */
+
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  color: var(--ink-muted);
+  font-style: italic;
+}
+
+.loading-emblem {
+  width: 44px;
+  height: 44px;
+  border: 2px solid var(--ink-muted);
+  border-top-color: var(--crimson);
+  transform: rotate(45deg);
+  margin-bottom: 1.25rem;
+  animation: spin 1.2s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(405deg); }
+}
+
+.error-message {
+  padding: 2rem;
+  text-align: center;
+  color: var(--crimson-bright);
+  font-style: italic;
+  font-weight: 600;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.last-updated {
+  text-align: right;
+  font-size: 0.82rem;
+  color: var(--ink-muted);
+  margin-top: 0.75rem;
+  font-style: italic;
+}
+
+/* ── Grades Legend ── */
+
+.grades-legend {
+  margin-top: 2rem;
+  padding: 1.5rem;
+  border: 2px solid var(--ink);
+  outline: 1px solid var(--gold-antique);
+  outline-offset: 3px;
+  background:
+    var(--paper-speckle),
+    var(--paper-fiber),
+    linear-gradient(180deg, rgba(255, 250, 238, 0.97), rgba(228, 210, 175, 0.99));
+  box-shadow: var(--shadow-parchment);
+}
+
+.grades-legend h3 {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  color: var(--ink);
+  letter-spacing: 0.1em;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.grades-legend h3::before,
+.grades-legend h3::after {
+  content: ' — ';
+  color: var(--crimson);
+  opacity: 0.6;
+}
+
+.grades-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 0.4rem;
+}
+
+.grade-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.35rem 0.55rem;
+  font-size: 0.88rem;
+  border-radius: 1px;
+}
+
+.grade-legend-rank {
+  font-family: var(--font-display);
+  color: var(--crimson);
+  min-width: 1.5rem;
+}
+
+.grade-legend-swatch {
+  width: 11px;
+  height: 11px;
+  border: 1px solid var(--ink-muted);
+  flex-shrink: 0;
+}
+
+.grade-legend-label {
+  display: inline-block;
+  font-family: var(--font-display);
+  font-size: 0.65rem;
+  letter-spacing: 0.05em;
+  padding: 0.12rem 0.4rem;
+  border: 1px solid currentColor;
+  background: transparent;
+}
+
+/* ── Footer ── */
+
+.site-footer {
+  text-align: center;
+  padding: 1.75rem 1.5rem;
+  border-top: 2px solid rgba(28, 18, 8, 0.2);
+  color: var(--ink-soft);
+  font-size: 0.88rem;
+  font-style: italic;
+  background: var(--paper-solid);
+}
+
+/* ── Portrait combattant — format 857×1024 ── */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(25, 12, 6, 0.72);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  animation: fadeIn 0.25s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.portrait-viewer {
+  position: relative;
+  width: 857px;
+  height: 1024px;
+  max-width: calc(100vw - 2rem);
+  max-height: calc(100vh - 2rem);
+  flex-shrink: 0;
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(12px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.portrait-close {
+  position: absolute;
+  top: -0.75rem;
+  right: -0.75rem;
+  z-index: 10;
+  width: 36px;
+  height: 36px;
+  font-size: 1.5rem;
+  line-height: 1;
+  color: var(--parchment-light);
+  background: var(--crimson);
+  border: 2px solid var(--ink);
+  cursor: pointer;
+  transition: background 0.2s;
+  box-shadow: 2px 2px 0 var(--ink);
+}
+
+.portrait-close:hover {
+  background: var(--ink);
+}
+
+.portrait-frame {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  padding: 14px;
+  background:
+    var(--paper-speckle),
+    var(--paper-fiber),
+    linear-gradient(180deg, rgba(242, 228, 204, 0.99), rgba(220, 195, 155, 0.99));
+  border: 3px solid var(--ink);
+  outline: 2px solid var(--gold-antique);
+  outline-offset: 5px;
+  box-shadow: var(--shadow-deep);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+/* Coins ornementaux — style affiche médiévale */
+.portrait-frame::before,
+.portrait-frame::after {
+  content: '';
+  position: absolute;
+  width: 48px;
+  height: 48px;
+  border: 2px solid var(--ink);
+  opacity: 0.55;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.portrait-frame::before {
+  top: 10px;
+  left: 10px;
+  border-right: none;
+  border-bottom: none;
+}
+
+.portrait-frame::after {
+  bottom: 10px;
+  right: 10px;
+  border-left: none;
+  border-top: none;
+}
+
+.portrait-frame img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top center;
+  display: block;
+  filter: sepia(0.12) contrast(1.04);
+  border: 2px solid rgba(28, 18, 8, 0.35);
+}
+
+.portrait-missing {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  text-align: center;
+  padding: 2rem;
+  font-style: italic;
+}
+
+.footer-admin {
+  margin-top: 0.5rem;
+}
+
+.footer-admin a {
+  color: var(--crimson);
+  font-size: 0.78rem;
+  text-decoration: none;
+  letter-spacing: 0.06em;
+}
+
+.footer-admin a:hover {
+  color: var(--gold-pale);
+}
+
+@media (max-width: 900px), (max-height: 1100px) {
+  .portrait-viewer {
+    width: min(857px, calc(100vw - 2rem));
+    height: auto;
+    aspect-ratio: 857 / 1024;
+    max-height: calc(100vh - 2rem);
+  }
+}
+
+/* ── Responsive ── */
+
+@media (max-width: 700px) {
+  .hero {
+    margin: 1rem 0.75rem 0;
+  }
+
+  .leaderboard {
+    font-size: 0.88rem;
+  }
+
+  .leaderboard th,
+  .leaderboard td {
+    padding: 0.5rem 0.45rem;
+  }
+}
+
+@media (max-width: 500px) {
+  .hero {
+    padding: 2.5rem 1rem 2rem;
+  }
+
+  .stats-panel {
+    grid-template-columns: 1fr 1fr;
+  }
+}

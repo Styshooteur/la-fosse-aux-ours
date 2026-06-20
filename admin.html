@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <title>Administration — La Fosse aux Ours</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;1,400&family=MedievalSharp&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css?v=20260620h">
+  <link rel="stylesheet" href="css/admin.css?v=20260620i">
+</head>
+<body>
+  <div class="bg-overlay"></div>
+
+  <main class="admin-page container">
+    <header class="admin-header">
+      <h1>Administration</h1>
+      <p class="admin-subtitle">La Fosse aux Ours — Vendeaume</p>
+      <a href="index.html" class="admin-back">← Retour au registre</a>
+    </header>
+
+    <section class="admin-auth" id="admin-auth">
+      <label for="admin-pin">Code administrateur</label>
+      <div class="admin-auth-row">
+        <input type="password" id="admin-pin" placeholder="Entrez le code" autocomplete="current-password" />
+        <button type="button" id="btn-auth">Accéder</button>
+      </div>
+      <p class="admin-hint">Code par défaut : <code>ours-vendeaume</code> (modifiable dans <code>data/admin-config.json</code>)</p>
+    </section>
+
+    <section class="admin-panel hidden" id="admin-panel">
+      <nav class="admin-tabs" role="tablist" aria-label="Sections administration">
+        <button type="button" class="admin-tab admin-tab--active" data-tab="portraits" role="tab" aria-selected="true" aria-controls="tab-portraits" id="tab-btn-portraits">Portraits</button>
+        <button type="button" class="admin-tab" data-tab="elo" role="tab" aria-selected="false" aria-controls="tab-elo" id="tab-btn-elo">Calculateur d'Elo</button>
+      </nav>
+
+      <div class="admin-tab-panel" id="tab-portraits" role="tabpanel" aria-labelledby="tab-btn-portraits">
+        <p class="admin-note">Format recommandé des portraits : <strong>857 × 1024 px</strong> (vertical, style gravure sur parchemin).</p>
+        <div class="admin-list" id="admin-list"></div>
+      </div>
+
+      <div class="admin-tab-panel hidden" id="tab-elo" role="tabpanel" aria-labelledby="tab-btn-elo" hidden>
+        <div class="elo-calculator" id="elo-calculator">
+          <div class="elo-fighters-grid">
+            <article class="elo-fighter-card">
+              <h3 class="elo-fighter-title">Combattant A</h3>
+              <label class="elo-field">
+                <span>Nom (optionnel)</span>
+                <input type="text" id="elo-a-name" placeholder="Nom du combattant" autocomplete="off" />
+              </label>
+              <label class="elo-field">
+                <span>Elo actuel</span>
+                <input type="number" id="elo-a-rating" min="1" step="1" value="1000" required />
+              </label>
+              <label class="elo-field">
+                <span>Victoires</span>
+                <input type="number" id="elo-a-wins" min="0" step="1" value="0" required />
+              </label>
+              <label class="elo-field">
+                <span>Matchs joués</span>
+                <input type="number" id="elo-a-matches" min="0" step="1" value="0" required />
+              </label>
+            </article>
+
+            <article class="elo-fighter-card">
+              <h3 class="elo-fighter-title">Combattant B</h3>
+              <label class="elo-field">
+                <span>Nom (optionnel)</span>
+                <input type="text" id="elo-b-name" placeholder="Nom du combattant" autocomplete="off" />
+              </label>
+              <label class="elo-field">
+                <span>Elo actuel</span>
+                <input type="number" id="elo-b-rating" min="1" step="1" value="1000" required />
+              </label>
+              <label class="elo-field">
+                <span>Victoires</span>
+                <input type="number" id="elo-b-wins" min="0" step="1" value="0" required />
+              </label>
+              <label class="elo-field">
+                <span>Matchs joués</span>
+                <input type="number" id="elo-b-matches" min="0" step="1" value="0" required />
+              </label>
+            </article>
+          </div>
+
+          <section class="elo-winner-section">
+            <h4 class="elo-section-title">Vainqueur du combat</h4>
+            <div class="elo-winner-buttons">
+              <button type="button" class="elo-winner-btn" data-winner="A" id="elo-winner-a">Combattant A</button>
+              <button type="button" class="elo-winner-btn" data-winner="B" id="elo-winner-b">Combattant B</button>
+            </div>
+          </section>
+
+          <button type="button" class="elo-calc-btn" id="elo-calc-btn">Calculer l'évolution Elo</button>
+          <p class="elo-error hidden" id="elo-error" role="alert"></p>
+
+          <div class="elo-results hidden" id="elo-results">
+            <div class="elo-results-grid">
+              <article class="elo-result-card" id="elo-result-a">
+                <h4 class="elo-result-name">Combattant A</h4>
+                <p class="elo-result-new">Nouvel Elo : <strong>—</strong></p>
+                <p class="elo-result-delta">—</p>
+              </article>
+              <article class="elo-result-card" id="elo-result-b">
+                <h4 class="elo-result-name">Combattant B</h4>
+                <p class="elo-result-new">Nouvel Elo : <strong>—</strong></p>
+                <p class="elo-result-delta">—</p>
+              </article>
+            </div>
+
+            <aside class="elo-details" id="elo-details"></aside>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <p class="admin-status hidden" id="admin-status"></p>
+  </main>
+
+  <!-- Éditeur de portrait -->
+  <div class="editor-overlay hidden" id="editor-overlay" role="dialog" aria-modal="true">
+    <div class="editor-dialog">
+      <h2 class="editor-title" id="editor-title">Ajuster le portrait</h2>
+      <p class="editor-instructions">Glissez l'image pour la repositionner · Utilisez le zoom pour redimensionner</p>
+      <div class="editor-viewport" id="editor-viewport">
+        <img id="editor-image" alt="" draggable="false" />
+      </div>
+      <div class="editor-controls">
+        <label class="editor-zoom-label" for="editor-zoom">
+          <span>Zoom</span>
+          <input type="range" id="editor-zoom" min="50" max="250" value="100" step="5" />
+        </label>
+      </div>
+      <div class="editor-actions">
+        <button type="button" class="editor-btn editor-btn--cancel" id="editor-cancel">Annuler</button>
+        <button type="button" class="editor-btn editor-btn--save" id="editor-save">Enregistrer le portrait</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="js/admin.js?v=20260620i"></script>
+</body>
+</html>
