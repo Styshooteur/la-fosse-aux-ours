@@ -1,0 +1,43 @@
+---
+description: Toujours indiquer si un git push est nécessaire après des modifications
+alwaysApply: true
+---
+
+# Notification git push (obligatoire)
+
+À **chaque fin de tâche** qui modifie le dépôt (code, config, assets, règles, etc.), terminer la réponse par une section explicite :
+
+## 🔄 Déploiement
+
+Choisir **exactement un** des deux cas :
+
+### Cas A — Push déjà fait par l'agent
+Si l'agent a exécuté `git push` avec succès dans cette conversation pour ces changements :
+- Indiquer : **« Poussé sur GitHub — rien à faire de ton côté pour le déploiement Vercel. »**
+- Mentionner le message de commit ou le hash si utile.
+- Rappeler d'attendre le redeploy Vercel (**Ready**) avant de tester en ligne.
+
+### Cas B — Push requis par l'utilisateur
+Si les fichiers sont modifiés localement mais **pas** poussés sur GitHub :
+- Indiquer clairement : **« Tu dois git push pour mettre le site en ligne à jour. »**
+- Fournir les commandes :
+
+```powershell
+cd "c:\Users\PC\Soundly Data\Desktop\Cursor Test"
+git add .
+git commit -m "Description courte du changement"
+git push
+```
+
+- Préciser : local (`start.bat`) = pas de push ; Vercel = push obligatoire.
+
+## Ne pas omettre cette section
+
+- Même pour un petit changement.
+- Même si l'utilisateur n'a pas demandé le déploiement.
+- Si aucun fichier n'a été modifié (question / review seule) : indiquer **« Aucun push nécessaire — aucun fichier modifié. »**
+
+## Push par l'agent
+
+- Ne commit/push **que** si l'utilisateur l'a autorisé explicitement (règle git du projet) **ou** s'il a autorisé l'agent à le faire pour le déploiement.
+- Si push effectué par l'agent, toujours annoncer le **Cas A** ; sinon toujours le **Cas B**.
