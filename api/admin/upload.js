@@ -1,6 +1,6 @@
 import { put } from '@vercel/blob';
 import { verifyPin } from '../_lib/admin.js';
-import { isBlobConfigured } from '../_lib/blob.js';
+import { isBlobConfigured, requireBlobOptions } from '../_lib/blob.js';
 import { saveFighterPortrait } from '../_lib/fighters-store.js';
 import { slugify } from '../_lib/slugify.js';
 
@@ -43,17 +43,19 @@ export default async function handler(req, res) {
   if (!isBlobConfigured()) {
     return res.status(503).json({
       error:
-        'Upload indisponible : connectez un store Vercel Blob au projet, puis redéployez.',
+        'Upload indisponible : ajoutez BLOB_READ_WRITE_TOKEN dans Vercel (Storage → Blob → .env.local), puis redéployez.',
     });
   }
 
   try {
+    const blobOpts = requireBlobOptions();
     const filename = `fighters/${slugify(fighterName)}.${ext}`;
     const blob = await put(filename, binary, {
       access: 'public',
       addRandomSuffix: false,
       allowOverwrite: true,
       contentType: `image/${ext === 'jpg' ? 'jpeg' : ext}`,
+      ...blobOpts,
     });
 
     await saveFighterPortrait(fighterName, blob.url);

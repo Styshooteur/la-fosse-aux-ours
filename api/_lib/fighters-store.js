@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { head, put } from '@vercel/blob';
-import { isBlobConfigured } from './blob.js';
+import { getBlobCallOptions, isBlobConfigured, requireBlobOptions } from './blob.js';
 import { FIGHTERS_REGISTRY_BLOB } from './config.js';
 
 function loadBaseFighters() {
@@ -20,7 +20,10 @@ async function loadRegistryOverlay() {
   }
 
   try {
-    const meta = await head(FIGHTERS_REGISTRY_BLOB);
+    const blobOpts = getBlobCallOptions();
+    if (!blobOpts) return {};
+
+    const meta = await head(FIGHTERS_REGISTRY_BLOB, blobOpts);
     if (!meta?.url) return {};
 
     const response = await fetch(meta.url, { cache: 'no-store' });
@@ -40,11 +43,7 @@ export async function getFightersMap() {
 }
 
 export async function saveFighterPortrait(name, imageUrl) {
-  if (!isBlobConfigured()) {
-    throw new Error(
-      'Stockage Blob non configuré. Connectez un store Blob au projet puis redéployez.'
-    );
-  }
+  const blobOpts = requireBlobOptions();
 
   const current = await loadRegistryOverlay();
   current[name] = { image: imageUrl };
@@ -54,6 +53,7 @@ export async function saveFighterPortrait(name, imageUrl) {
     addRandomSuffix: false,
     allowOverwrite: true,
     contentType: 'application/json',
+    ...blobOpts,
   });
 
   return imageUrl;
