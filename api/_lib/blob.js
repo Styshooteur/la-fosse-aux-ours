@@ -7,53 +7,55 @@ export function portraitApiPath(blobPathname) {
 
 /** Store Blob connecté au projet (OIDC ou token statique). */
 export function isBlobConfigured() {
-  return Boolean(process.env.BLOB_STORE_ID || process.env.BLOB_READ_WRITE_TOKEN);
+  return Boolean(
+    process.env.BLOB_STORE_ID ||
+      process.env.BLOB_READ_WRITE_TOKEN ||
+      process.env.VERCEL_OIDC_TOKEN
+  );
 }
 
-/** Options passées à @vercel/blob — token valide prioritaire, sinon OIDC du store. */
+/**
+ * Auth Blob pour @vercel/blob.
+ * Sur Vercel, OIDC + BLOB_STORE_ID prime sur un token manuel (souvent périmé).
+ */
 export function getBlobCallOptions() {
+  const storeId = process.env.BLOB_STORE_ID?.trim();
+
+  if (storeId && process.env.VERCEL_OIDC_TOKEN) {
+    return { storeId, oidcToken: process.env.VERCEL_OIDC_TOKEN };
+  }
+
   const token = process.env.BLOB_READ_WRITE_TOKEN?.trim();
   if (token) {
     return { token };
   }
 
-  const storeId = process.env.BLOB_STORE_ID;
-  if (!storeId) {
-    return {};
+  if (storeId) {
+    return { storeId };
   }
 
-  const opts = { storeId };
-  if (process.env.VERCEL_OIDC_TOKEN) {
-    opts.oidcToken = process.env.VERCEL_OIDC_TOKEN;
-  }
-  return opts;
+  return {};
 }
 
-/** Upload Blob — essaie public puis private selon la config du store. */
+/** Mode d'accès du store — public par défaut (store actuel du projet). */
+export function getBlobAccess() {
+  const mode = process.env.BLOB_ACCESS?.trim().toLowerCase();
+  return mode === 'private' ? 'private' : 'public';
+}
+
+/** Upload Blob avec le bon mode d'accès (sans retry ambigu). */
 export async function putBlob(pathname, body, contentType) {
-  const base = {
+  const access = getBlobAccess();
+
+  const blob = await put(pathname, body, {
     addRandomSuffix: false,
     allowOverwrite: true,
     contentType,
     ...getBlobCallOptions(),
-  };
+    access,
+  });
 
-  let lastError = null;
-  for (const access of ['public', 'private']) {
-    try {
-      const blob = await put(pathname, body, { ...base, access });
-      return { blob, access };
-    } catch (error) {
-      lastError = error;
-      const msg = error.message || '';
-      if (/access must be|private store|public access|cannot use public/i.test(msg)) {
-        continue;
-      }
-      throw error;
-    }
-  }
-
-  throw lastError || new Error('Impossible de joindre le store Vercel Blob.');
+  return { blob, access };
 }
 
 /** URL affichable sur le site selon le mode du store. */
@@ -69,11 +71,12 @@ export function blobSetupHint() {
     return (
       'Le store Blob est connecté mais l\'authentification a échoué. ' +
       'Storage → votre Blob → onglet .env.local → copiez BLOB_READ_WRITE_TOKEN → ' +
-      'Variables d\'environnement (Production) → redéployez.'
+      'Variables d\'environnement (Production) → redéployez. ' +
+      'Ou supprimez BLOB_READ_WRITE_TOKEN si le store est connecté via OIDC.'
     );
   }
   return (
-    'Connectez un store Vercel Blob au projet la-fosse-aux-ours-lvza, ' +
-    'ajoutez BLOB_READ_WRITE_TOKEN, puis redéployez.'
+    'Connectez un store Vercel Blob public au projet la-fosse-aux-ours-lvza, ' +
+    'vérifiez BLOB_STORE_ID / BLOB_READ_WRITE_TOKEN, puis redéployez.'
   );
 }
