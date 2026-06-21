@@ -10,7 +10,9 @@ import {
   duplicateTournament,
   swissCanAdvance,
   hasStarted,
+  refreshDerivedState,
 } from './engine.js';
+import { computeStandings } from './standings.js';
 import {
   fetchTournaments,
   fetchTournament,
@@ -111,6 +113,7 @@ export function initTournamentsAdmin({ root, getPin, showStatus }) {
         const action = btn.dataset.action;
         if (action === 'resume') {
           current = await fetchTournament(id);
+          refreshDerivedState(current);
           renderDetail();
           showView('detail');
         } else if (action === 'duplicate') {
@@ -244,6 +247,7 @@ export function initTournamentsAdmin({ root, getPin, showStatus }) {
 
   function renderDetail() {
     if (!current) return;
+    refreshDerivedState(current);
     const t = current;
 
     let body = '';
@@ -266,7 +270,7 @@ export function initTournamentsAdmin({ root, getPin, showStatus }) {
       const groupsHtml = (t.state.groups || [])
         .map((g) => {
           const groupMatches = t.state.matches.filter((m) => m.groupId === g.id);
-          const standings = t.state.standingsByGroup?.[g.id] || [];
+          const standings = computeStandings(t, { groupId: g.id });
           return `
             <section class="t-group">
               <h3 class="t-subtitle">${escapeHtml(g.name)}</h3>

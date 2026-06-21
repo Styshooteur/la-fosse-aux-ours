@@ -20,14 +20,24 @@ export function computeStandings(tournament, { groupId = null, onlyCompleted = t
   const stats = new Map();
 
   let groupParticipantIds = null;
-  if (groupId !== null && tournament.state.groups) {
-    const group = tournament.state.groups.find((g) => g.id === groupId);
-    groupParticipantIds = group?.participantIds || [];
+  if (groupId !== null) {
+    const group = tournament.state.groups?.find((g) => g.id === groupId);
+    groupParticipantIds = group?.participantIds ? [...group.participantIds] : [];
+
+    if (!groupParticipantIds.length) {
+      const ids = new Set();
+      for (const m of tournament.state.matches) {
+        if (m.groupId !== groupId) continue;
+        if (m.participantAId) ids.add(m.participantAId);
+        if (m.participantBId) ids.add(m.participantBId);
+      }
+      groupParticipantIds = [...ids];
+    }
   }
 
   for (const p of tournament.participants) {
-    if (p.forfeited) continue;
-    if (groupParticipantIds && !groupParticipantIds.includes(p.id)) continue;
+    if (p.forfeited || p.isBye) continue;
+    if (groupParticipantIds !== null && !groupParticipantIds.includes(p.id)) continue;
     stats.set(p.id, emptyStanding(p.id));
   }
 
