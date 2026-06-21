@@ -18,6 +18,8 @@ ROOT = Path(__file__).parent
 FIGHTERS_JSON = ROOT / 'data' / 'fighters.json'
 ADMIN_CONFIG = ROOT / 'data' / 'admin-config.json'
 FIGHTERS_DIR = ROOT / 'assets' / 'fighters'
+TOURNAMENTS_DIR = ROOT / 'data' / 'tournaments'
+TOURNAMENTS_INDEX = ROOT / 'data' / 'tournaments-index.json'
 
 
 def slugify(name: str) -> str:
@@ -53,6 +55,9 @@ class Handler(SimpleHTTPRequestHandler):
         if self.path == '/api/fighters' or self.path.startswith('/api/fighters?'):
             self.serve_fighters()
             return
+        if self.path == '/api/tournaments' or self.path.startswith('/api/tournaments?'):
+            self.serve_tournaments_get()
+            return
         super().do_GET()
 
     def end_headers(self):
@@ -75,6 +80,8 @@ class Handler(SimpleHTTPRequestHandler):
             self.handle_verify(payload)
         elif self.path == '/api/admin/upload':
             self.handle_upload(payload)
+        elif self.path == '/api/tournaments':
+            self.handle_tournaments_post(payload)
         else:
             self.send_json(404, {'error': 'Route introuvable.'})
 
@@ -129,6 +136,84 @@ class Handler(SimpleHTTPRequestHandler):
     def serve_fighters(self):
         data = load_json(FIGHTERS_JSON, {'fighters': {}})
         self.send_json(200, data)
+
+    def load_tournaments_index(self):
+        data = load_json(TOURNAMENTS_INDEX, {'tournaments': []})
+        return data.get('tournaments', [])
+
+    def save_tournaments_index(self, entries):
+        TOURNAMENTS_DIR.mkdir(parents=True, exist_ok=True)
+        save_json(TOURNAMENTS_INDEX, {'tournaments': entries})
+
+    def tournament_summary(self, tournament):
+        return {
+            'id': tournament['id'],
+            'name': tournament['name'],
+            'format': tournament['format'],
+            'status': tournament['status'],
+            'participantCount': len(tournament.get('participants', [])),
+            'createdAt': tournament.get('createdAt'),
+            'updatedAt': tournament.get('updatedAt'),
+        }
+
+    def serve_tournaments_get(self):
+        parsed = urllib.parse.urlparse(self.path)
+        params = urllib.parse.parse_qs(parsed.query)
+        tournament_id = params.get('id', [None])[0]
+
+        if tournament_id:
+            path = TOURNAMENTS_DIR / f'{tournament_id}.json'
+            if not path.exists():
+                self.send_json(404, {'error': 'Tournoi introuvable.'})
+                return
+            tournament = load_json(path, None)
+            self.send_json(200, {'tournament': tournament})
+            return
+
+        entries = self.load_tournaments_index()
+        entries.sort(key=lambda t: t.get('updatedAt', ''), reverse=True)
+        self.send_json(200, {'tournaments': entries})
+
+    def handle_tournaments_post(self, payload):
+        pin = payload.get('pin', '')
+        if not verify_pin(pin):
+            self.send_json(403, {'error': 'Code administrateur incorrect.'})
+            return
+
+        action = payload.get('action', 'save')
+        if action == 'delete':
+            tournament_id = payload.get('id')
+            if not tournament_id:
+                self.send_json(400, {'error': 'ID manquant.'})
+                return
+            path = TOURNAMENTS_DIR / f'{tournament_id}.json'
+            if path.exists():
+                path.unlink()
+            entries = self.load_tournaments_index()
+            self.save_tournaments_index([t for t in entries if t.get('id') != tournament_id])
+            self.send_json(200, {'ok': True})
+            return
+
+        tournament = payload.get('tournament')
+        if not tournament or not tournament.get('id'):
+            self.send_json(400, {'error': 'Données de tournoi invalides.'})
+            return
+
+        TOURNAMENTS_DIR.mkdir(parents=True, exist_ok=True)
+        save_json(TOURNAMENTS_DIR / f"{tournament['id']}.json", tournament)
+
+        entries = self.load_tournaments_index()
+        summary = self.tournament_summary(tournament)
+        updated = False
+        for i, entry in enumerate(entries):
+            if entry.get('id') == tournament['id']:
+                entries[i] = summary
+                updated = True
+                break
+        if not updated:
+            entries.append(summary)
+        self.save_tournaments_index(entries)
+        self.send_json(200, {'ok': True, 'tournament': tournament})
 
     def send_json(self, status, payload):
         body = json.dumps(payload, ensure_ascii=False).encode('utf-8')

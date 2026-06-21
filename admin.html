@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;1,400&family=MedievalSharp&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css?v=20260620h">
-  <link rel="stylesheet" href="css/admin.css?v=20260620i">
+  <link rel="stylesheet" href="css/admin.css?v=20260620j">
 </head>
 <body>
   <div class="bg-overlay"></div>
@@ -33,12 +33,17 @@
     <section class="admin-panel hidden" id="admin-panel">
       <nav class="admin-tabs" role="tablist" aria-label="Sections administration">
         <button type="button" class="admin-tab admin-tab--active" data-tab="portraits" role="tab" aria-selected="true" aria-controls="tab-portraits" id="tab-btn-portraits">Portraits</button>
+        <button type="button" class="admin-tab" data-tab="tournaments" role="tab" aria-selected="false" aria-controls="tab-tournaments" id="tab-btn-tournaments">Tournois</button>
         <button type="button" class="admin-tab" data-tab="elo" role="tab" aria-selected="false" aria-controls="tab-elo" id="tab-btn-elo">Calculateur d'Elo</button>
       </nav>
 
       <div class="admin-tab-panel" id="tab-portraits" role="tabpanel" aria-labelledby="tab-btn-portraits">
         <p class="admin-note">Format recommandé des portraits : <strong>857 × 1024 px</strong> (vertical, style gravure sur parchemin).</p>
         <div class="admin-list" id="admin-list"></div>
+      </div>
+
+      <div class="admin-tab-panel hidden" id="tab-tournaments" role="tabpanel" aria-labelledby="tab-btn-tournaments" hidden>
+        <div id="tournaments-root"></div>
       </div>
 
       <div class="admin-tab-panel hidden" id="tab-elo" role="tabpanel" aria-labelledby="tab-btn-elo" hidden>
@@ -140,6 +145,6 @@
     </div>
   </div>
 
-  <script type="module" src="js/admin.js?v=20260620j"></script>
+  <script type="module" src="js/admin.js?v=20260620k"></script>
 </body>
 </html>

@@ -6,6 +6,7 @@ import {
   formatModifier,
   formatDelta,
 } from './elo-calculator.js?v=20260620i';
+import { initTournamentsAdmin } from './tournaments/tournament-app.js?v=20260620k';
 
 const PIN_KEY = 'fosse-admin-pin';
 const $ = (id) => document.getElementById(id);
@@ -13,6 +14,7 @@ const $ = (id) => document.getElementById(id);
 let fighters = [];
 let portraits = {};
 let selectedWinner = null;
+let tournamentsAdmin = null;
 
 function showStatus(message, isError = false) {
   const el = $('admin-status');
@@ -139,13 +141,17 @@ function switchTab(tabId) {
   });
 
   document.querySelectorAll('.admin-tab-panel').forEach((panel) => {
-    const isPortraits = panel.id === 'tab-portraits';
-    const isElo = panel.id === 'tab-elo';
     const show =
-      (tabId === 'portraits' && isPortraits) || (tabId === 'elo' && isElo);
+      (tabId === 'portraits' && panel.id === 'tab-portraits') ||
+      (tabId === 'tournaments' && panel.id === 'tab-tournaments') ||
+      (tabId === 'elo' && panel.id === 'tab-elo');
     panel.classList.toggle('hidden', !show);
     panel.hidden = !show;
   });
+
+  if (tabId === 'tournaments' && tournamentsAdmin) {
+    tournamentsAdmin.open();
+  }
 }
 
 function setupTabs() {
@@ -277,6 +283,15 @@ async function unlockAdmin(pin) {
   setPin(pin);
   $('admin-auth').classList.add('hidden');
   $('admin-panel').classList.remove('hidden');
+
+  if (!tournamentsAdmin) {
+    tournamentsAdmin = initTournamentsAdmin({
+      root: $('tournaments-root'),
+      getPin,
+      showStatus,
+    });
+  }
+
   await loadFighters();
   renderAdminList();
 }
@@ -291,6 +306,13 @@ async function init() {
     if (valid) {
       $('admin-auth').classList.add('hidden');
       $('admin-panel').classList.remove('hidden');
+      if (!tournamentsAdmin) {
+        tournamentsAdmin = initTournamentsAdmin({
+          root: $('tournaments-root'),
+          getPin,
+          showStatus,
+        });
+      }
       await loadFighters();
       renderAdminList();
       return;
