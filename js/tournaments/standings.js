@@ -18,8 +18,16 @@ export function emptyStanding(participantId) {
 
 export function computeStandings(tournament, { groupId = null, onlyCompleted = true } = {}) {
   const stats = new Map();
+
+  let groupParticipantIds = null;
+  if (groupId !== null && tournament.state.groups) {
+    const group = tournament.state.groups.find((g) => g.id === groupId);
+    groupParticipantIds = group?.participantIds || [];
+  }
+
   for (const p of tournament.participants) {
     if (p.forfeited) continue;
+    if (groupParticipantIds && !groupParticipantIds.includes(p.id)) continue;
     stats.set(p.id, emptyStanding(p.id));
   }
 
