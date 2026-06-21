@@ -12,7 +12,19 @@ export function renderMatchCard(tournament, match) {
   const colorA = pA?.color || '#8f6118';
   const colorB = pB?.color || '#495052';
   const completed = match.status === 'completed';
-  const canPlay = match.participantAId && match.participantBId && match.status !== 'bye';
+  const waitingA = !match.participantAId;
+  const waitingB = !match.participantBId;
+  const isBye =
+    (pA?.isBye && match.participantBId && !pB?.isBye) ||
+    (pB?.isBye && match.participantAId && !pA?.isBye);
+  const canPlay =
+    match.participantAId &&
+    match.participantBId &&
+    match.status !== 'bye' &&
+    !isBye;
+
+  const nameA = waitingA ? 'En attente' : participantName(tournament, match.participantAId);
+  const nameB = waitingB ? 'En attente' : participantName(tournament, match.participantBId);
 
   const scoreBlock = canPlay
     ? `<div class="t-match-scores">
@@ -20,29 +32,34 @@ export function renderMatchCard(tournament, match) {
         <span>vs</span>
         <input type="number" min="0" class="t-score-input" data-side="B" value="${match.scoreB ?? ''}" placeholder="0" />
       </div>`
-    : `<span class="t-match-score">${match.scoreA ?? '—'} — ${match.scoreB ?? '—'}</span>`;
-
-  const actions = !canPlay
-    ? ''
     : completed
+      ? `<span class="t-match-score">${match.scoreA ?? '—'} — ${match.scoreB ?? '—'}</span>`
+      : isBye
+        ? '<span class="t-match-score t-match-score--bye">Exempt — passage automatique</span>'
+        : `<span class="t-match-score t-match-score--wait">${waitingA || waitingB ? 'En attente des qualifiés' : '—'}</span>`;
+
+  let actions = '';
+  if (canPlay) {
+    actions = completed
       ? `<button type="button" class="t-btn t-btn--ghost t-btn-edit" data-match-id="${match.id}">Éditer</button>`
       : `<button type="button" class="t-btn t-btn--primary t-btn-validate" data-match-id="${match.id}">Valider le résultat</button>`;
+  }
 
   return `
-    <article class="t-match ${completed ? 't-match--done' : ''}" data-match-id="${match.id}">
+    <article class="t-match ${completed ? 't-match--done' : ''} ${isBye ? 't-match--bye' : ''}" data-match-id="${match.id}">
       <header class="t-match-header">
         <span>${escapeHtml(match.roundName || `Tour ${match.round}`)}</span>
         ${match.bracket ? `<span class="t-match-bracket">${escapeHtml(match.bracket)}</span>` : ''}
       </header>
       <div class="t-match-body">
-        <div class="t-match-player ${match.winnerId === match.participantAId ? 't-match-player--win' : ''}">
-          <span class="t-color-dot" style="background:${colorA}"></span>
-          <span class="t-player-name">${escapeHtml(participantName(tournament, match.participantAId))}</span>
+        <div class="t-match-player ${match.winnerId === match.participantAId ? 't-match-player--win' : ''} ${waitingA ? 't-match-player--wait' : ''}">
+          <span class="t-color-dot" style="background:${waitingA ? '#ccc' : colorA}"></span>
+          <span class="t-player-name">${escapeHtml(nameA)}</span>
         </div>
         ${scoreBlock}
-        <div class="t-match-player ${match.winnerId === match.participantBId ? 't-match-player--win' : ''}">
-          <span class="t-color-dot" style="background:${colorB}"></span>
-          <span class="t-player-name">${escapeHtml(participantName(tournament, match.participantBId))}</span>
+        <div class="t-match-player ${match.winnerId === match.participantBId ? 't-match-player--win' : ''} ${waitingB ? 't-match-player--wait' : ''}">
+          <span class="t-color-dot" style="background:${waitingB ? '#ccc' : colorB}"></span>
+          <span class="t-player-name">${escapeHtml(nameB)}</span>
         </div>
       </div>
       ${actions ? `<footer class="t-match-actions">${actions}</footer>` : ''}
@@ -80,14 +97,29 @@ export function renderStandingsTable(standings, { showBuchholz = false } = {}) {
     </table>`;
 }
 
-export function renderEliminationBracket(tournament, bracketFilter = null) {
-  const matches = tournament.state.matches.filter((m) => {
+function filterBracketMatches(tournament, bracketFilter = null, { knockoutOnly = false } = {}) {
+  return tournament.state.matches.filter((m) => {
     if (m.groupId || m.swissRound) return false;
+    if (knockoutOnly) {
+      const isKnockoutMatch =
+        m.knockout ||
+        (tournament.state.phase === 'knockout' && tournament.state.knockoutGenerated);
+      if (!isKnockoutMatch) return false;
+    }
     if (bracketFilter === 'winner') return m.bracket === 'winner' || m.bracket === null;
     if (bracketFilter === 'loser') return m.bracket === 'loser';
     if (bracketFilter === 'final') return m.bracket === 'final';
     return m.bracket !== 'loser';
   });
+}
+
+function matchTopPx(roundIndex, matchIndex, unitPx) {
+  const mult = 2 ** roundIndex;
+  return matchIndex * unitPx * mult + ((mult - 1) * unitPx) / 2;
+}
+
+export function renderEliminationBracket(tournament, bracketFilter = null, options = {}) {
+  const matches = filterBracketMatches(tournament, bracketFilter, options);
 
   if (!matches.length) return '<p class="t-empty">Aucun match.</p>';
 
@@ -98,49 +130,52 @@ export function renderEliminationBracket(tournament, bracketFilter = null) {
     if (rm.length) rounds.push(rm);
   }
 
-  const matchH = 88;
-  const colW = 230;
-  const svgW = rounds.length * colW + 40;
-  const slotsInFirst = rounds[0]?.length || 1;
-  const svgH = slotsInFirst * 104 + 40;
+  const unitPx = 152;
+  const firstCount = rounds[0]?.length || 1;
+  const colHeight = firstCount * unitPx;
+  const colW = 272;
 
   let svgLines = '';
   const colHtml = rounds
     .map((roundMatches, colIndex) => {
-      const slotH = (svgH - 40) / roundMatches.length;
-      const cards = roundMatches
+      const cells = roundMatches
         .map((match, rowIndex) => {
-          const top = 20 + rowIndex * slotH + (slotH - matchH) / 2;
+          const top = matchTopPx(colIndex, rowIndex, unitPx);
+          const prevTop = rowIndex > 0 ? matchTopPx(colIndex, rowIndex - 1, unitPx) : 0;
+          const marginTop = rowIndex === 0 ? top : top - prevTop - 132;
+
           if (colIndex < rounds.length - 1 && match.nextMatchId) {
             const nextCol = rounds[colIndex + 1];
             const nextMatch = nextCol.find((m) => m.id === match.nextMatchId);
             if (nextMatch) {
               const nextRow = nextCol.indexOf(nextMatch);
-              const nextSlotH = (svgH - 40) / nextCol.length;
-              const y1 = top + matchH / 2;
-              const y2 = 20 + nextRow * nextSlotH + (nextSlotH - matchH) / 2 + matchH / 2;
-              const x1 = 20 + colIndex * colW + colW - 10;
-              const x2 = 20 + (colIndex + 1) * colW + 10;
+              const y1 = top + 68;
+              const y2 = matchTopPx(colIndex + 1, nextRow, unitPx) + 68;
+              const x1 = colIndex * colW + colW - 12;
+              const x2 = (colIndex + 1) * colW + 12;
               const midX = (x1 + x2) / 2;
-              svgLines += `<path d="M${x1} ${y1} H${midX} V${y2} H${x2}" fill="none" stroke="#7a1a1a" stroke-width="2" opacity="0.45"/>`;
+              svgLines += `<path d="M${x1} ${y1} H${midX} V${y2} H${x2}" fill="none" stroke="#7a1a1a" stroke-width="2" opacity="0.4"/>`;
             }
           }
-          return `<div class="t-bracket-slot" style="top:${top}px">${renderMatchCard(tournament, match)}</div>`;
+
+          return `<div class="t-bracket-cell" style="margin-top:${Math.max(0, marginTop)}px">${renderMatchCard(tournament, match)}</div>`;
         })
         .join('');
 
       return `
-        <div class="t-bracket-col" style="width:${colW}px">
+        <div class="t-bracket-col-flex" style="width:${colW}px">
           <h4 class="t-bracket-round">${escapeHtml(roundMatches[0]?.roundName || `Tour ${colIndex + 1}`)}</h4>
-          <div class="t-bracket-col-inner" style="height:${svgH}px">${cards}</div>
+          <div class="t-bracket-col-body" style="min-height:${colHeight}px">${cells}</div>
         </div>`;
     })
     .join('');
 
+  const svgW = rounds.length * colW;
+
   return `
     <div class="t-bracket-wrap" id="t-bracket-export">
-      <svg class="t-bracket-svg" width="${svgW}" height="${svgH}" viewBox="0 0 ${svgW} ${svgH}">${svgLines}</svg>
-      <div class="t-bracket-grid" style="width:${svgW}px;min-height:${svgH}px">${colHtml}</div>
+      <svg class="t-bracket-svg" width="${svgW}" height="${colHeight + 60}" viewBox="0 0 ${svgW} ${colHeight + 60}" aria-hidden="true">${svgLines}</svg>
+      <div class="t-bracket-flex" style="min-height:${colHeight + 60}px;width:${svgW}px">${colHtml}</div>
     </div>`;
 }
 

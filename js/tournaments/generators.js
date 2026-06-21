@@ -204,7 +204,7 @@ export function generateGroupStage(participants, groupCount, seedMode = 'random'
 export function generateKnockoutFromGroups(tournament, qualifiersPerGroup) {
   const qualifiers = [];
   for (const group of tournament.state.groups) {
-    const standings = tournament.state.standingsByGroup?.[group.id] || [];
+    const standings = computeStandings(tournament, { groupId: group.id });
     const top = standings.slice(0, qualifiersPerGroup).map((s) => s.participantId);
     qualifiers.push(...top);
   }
@@ -219,16 +219,22 @@ export function generateKnockoutFromGroups(tournament, qualifiersPerGroup) {
   const size = [4, 8, 16, 32].find((s) => s >= n) || 4;
   const padded = [...participantObjs];
   while (padded.length < size) {
-    padded.push({
+    const bye = {
       id: generateId('bye'),
-      name: 'BYE',
+      name: 'BYE (exempt)',
       color: '#cccccc',
       forfeited: false,
       isBye: true,
-    });
+    };
+    padded.push(bye);
+    tournament.participants.push(bye);
   }
 
   const bracket = generateSingleElimination(padded.slice(0, size), 'manual');
+  bracket.matches.forEach((m) => {
+    m.knockout = true;
+  });
+
   return {
     matches: bracket.matches,
     phase: 'knockout',

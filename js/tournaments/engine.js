@@ -1,6 +1,6 @@
 import { FORMATS, STATUS } from './types.js';
 import { computeStandings } from './standings.js';
-import { findMatch, generateId, nowIso } from './utils.js';
+import { findMatch, generateId, nowIso, participantById } from './utils.js';
 import {
   generateDoubleElimination,
   generateGroupStage,
@@ -161,6 +161,27 @@ export function generateBracket(tournament) {
   return tournament;
 }
 
+function resolveByeMatches(tournament) {
+  for (const match of tournament.state.matches) {
+    if (match.status === 'completed') continue;
+    const pA = participantById(tournament, match.participantAId);
+    const pB = participantById(tournament, match.participantBId);
+    if (pA?.isBye && pB && !pB.isBye) {
+      match.scoreA = 0;
+      match.scoreB = 1;
+      match.winnerId = match.participantBId;
+      match.status = 'completed';
+      propagateWinner(tournament, match);
+    } else if (pB?.isBye && pA && !pA.isBye) {
+      match.scoreA = 1;
+      match.scoreB = 0;
+      match.winnerId = match.participantAId;
+      match.status = 'completed';
+      propagateWinner(tournament, match);
+    }
+  }
+}
+
 export function refreshDerivedState(tournament) {
   if (tournament.format === FORMATS.ROUND_ROBIN) {
     tournament.state.standings = computeStandings(tournament);
@@ -222,6 +243,7 @@ export function refreshDerivedState(tournament) {
   }
 
   tournament.updatedAt = nowIso();
+  resolveByeMatches(tournament);
   return tournament;
 }
 

@@ -280,7 +280,7 @@ export function initTournamentsAdmin({ root, getPin, showStatus }) {
         })
         .join('');
       const knockout = t.state.phase === 'knockout'
-        ? `<h3 class="t-subtitle">Phase éliminatoire</h3>${renderEliminationBracket(t)}`
+        ? `<h3 class="t-subtitle">Phase éliminatoire</h3>${renderEliminationBracket(t, null, { knockoutOnly: true })}`
         : '';
       body = groupsHtml + knockout;
     } else if (t.format === FORMATS.SWISS) {
