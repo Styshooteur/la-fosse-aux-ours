@@ -223,11 +223,17 @@ export function refreshDerivedState(tournament) {
 
   if (
     tournament.format === FORMATS.SINGLE_ELIMINATION ||
-    tournament.format === FORMATS.DOUBLE_ELIMINATION
+    tournament.format === FORMATS.DOUBLE_ELIMINATION ||
+    tournament.format === FORMATS.GROUP_STAGE
   ) {
     const finalMatch = [...tournament.state.matches]
       .reverse()
-      .find((m) => m.bracket === 'final' || m.roundName === 'Finale');
+      .find(
+        (m) =>
+          m.bracket === 'final' ||
+          m.roundName === 'Finale' ||
+          m.roundName === 'Grande finale'
+      );
     if (finalMatch?.status === 'completed') {
       tournament.status = STATUS.COMPLETED;
     }

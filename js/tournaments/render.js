@@ -6,6 +6,41 @@ export function escapeHtml(str) {
   return div.innerHTML;
 }
 
+function isFinalMatch(match) {
+  return (
+    match.bracket === 'final' ||
+    match.roundName === 'Finale' ||
+    match.roundName === 'Grande finale'
+  );
+}
+
+function championCrown(match) {
+  const gradId = `tCrownGold-${match.id.replace(/[^a-z0-9]/gi, '')}`;
+  return `<span class="rank-crown" aria-hidden="true" title="Champion du tournoi">
+  <svg viewBox="0 0 80 56" xmlns="http://www.w3.org/2000/svg" focusable="false">
+    <defs>
+      <linearGradient id="${gradId}" x1="40" y1="2" x2="40" y2="54" gradientUnits="userSpaceOnUse">
+        <stop offset="0%" stop-color="#f8df70"/>
+        <stop offset="50%" stop-color="#ebc42a"/>
+        <stop offset="100%" stop-color="#c9940c"/>
+      </linearGradient>
+    </defs>
+    <path fill="url(#${gradId})" d="M9 45.5 6.5 29.5 17 37.5 22.5 13.5 31.5 36 40 5.5 48.5 36 57.5 13.5 63 37.5 73.5 29.5 71 45.5Q40 51.5 9 45.5Z"/>
+    <circle cx="22.5" cy="10.5" r="3.3" fill="url(#${gradId})"/>
+    <circle cx="40" cy="4.2" r="4" fill="url(#${gradId})"/>
+    <circle cx="57.5" cy="10.5" r="3.3" fill="url(#${gradId})"/>
+    <path fill="none" stroke="#f5ead0" stroke-width="3" stroke-linecap="round" d="M15 41.5Q40 38 65 41.5"/>
+    <path fill="none" stroke="#f5ead0" stroke-width="3" stroke-linecap="round" d="M13 46.5Q40 43 67 46.5"/>
+  </svg>
+</span>`;
+}
+
+function crownIfWinner(match, participantId, completed) {
+  if (!completed || !match.winnerId || participantId !== match.winnerId) return '';
+  if (!isFinalMatch(match)) return '';
+  return championCrown(match);
+}
+
 export function renderMatchCard(tournament, match) {
   const pA = participantById(tournament, match.participantAId);
   const pB = participantById(tournament, match.participantBId);
@@ -54,12 +89,12 @@ export function renderMatchCard(tournament, match) {
       <div class="t-match-body">
         <div class="t-match-player ${match.winnerId === match.participantAId ? 't-match-player--win' : ''} ${waitingA ? 't-match-player--wait' : ''}">
           <span class="t-color-dot" style="background:${waitingA ? '#ccc' : colorA}"></span>
-          <span class="t-player-name">${escapeHtml(nameA)}</span>
+          <span class="t-player-name">${crownIfWinner(match, match.participantAId, completed)}${escapeHtml(nameA)}</span>
         </div>
         ${scoreBlock}
         <div class="t-match-player ${match.winnerId === match.participantBId ? 't-match-player--win' : ''} ${waitingB ? 't-match-player--wait' : ''}">
           <span class="t-color-dot" style="background:${waitingB ? '#ccc' : colorB}"></span>
-          <span class="t-player-name">${escapeHtml(nameB)}</span>
+          <span class="t-player-name">${crownIfWinner(match, match.participantBId, completed)}${escapeHtml(nameB)}</span>
         </div>
       </div>
       ${actions ? `<footer class="t-match-actions">${actions}</footer>` : ''}
