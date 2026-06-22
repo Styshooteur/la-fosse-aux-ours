@@ -9,6 +9,7 @@ import {
   generateSingleElimination,
   generateSwissRound,
 } from './generators.js';
+import { syncDoubleElimParticipants } from './double-elim.js';
 
 function clearMatchResult(match) {
   match.scoreA = null;
@@ -162,63 +163,15 @@ export function generateBracket(tournament) {
 }
 
 function replayCompletedMatches(tournament) {
+  if (tournament.format === FORMATS.DOUBLE_ELIMINATION) return;
+
   const completed = [...tournament.state.matches]
     .filter((m) => m.status === 'completed' && m.winnerId)
-    .sort((a, b) => {
-      const bracketOrder = { winner: 0, loser: 1, final: 2 };
-      const ba = bracketOrder[a.bracket] ?? 0;
-      const bb = bracketOrder[b.bracket] ?? 0;
-      if (a.round !== b.round) return a.round - b.round;
-      return ba - bb;
-    });
+    .sort((a, b) => a.round - b.round);
 
   for (const m of completed) {
     propagateWinner(tournament, m);
   }
-}
-
-/** Répare les liens LB Tour 2 des tournois créés avec l'ancien algorithme. */
-function repairDoubleEliminationLosers(tournament) {
-  if (tournament.format !== FORMATS.DOUBLE_ELIMINATION) return;
-  if (tournament.state.loserBracketVersion >= 2) return;
-
-  const lbByRound = new Map();
-  const wbByRound = new Map();
-
-  for (const m of tournament.state.matches) {
-    if (m.bracket === 'loser') {
-      if (!lbByRound.has(m.round)) lbByRound.set(m.round, []);
-      lbByRound.get(m.round).push(m);
-    }
-    if (m.bracket === 'winner') {
-      if (!wbByRound.has(m.round)) wbByRound.set(m.round, []);
-      wbByRound.get(m.round).push(m);
-    }
-  }
-
-  const lb1 = lbByRound.get(1) || [];
-  const lb2 = lbByRound.get(2) || [];
-  const wb2 = wbByRound.get(2) || [];
-
-  if (lb1.length > 0 && lb2.length === lb1.length) {
-    lb2.forEach((m, i) => {
-      if (lb1[i]) {
-        lb1[i].nextMatchId = m.id;
-        lb1[i].nextSlot = 'A';
-        if (lb1[i + 1] && lb1[i + 1].nextMatchId === m.id) {
-          lb1[i + 1].nextMatchId = null;
-          lb1[i + 1].nextSlot = null;
-        }
-      }
-      if (wb2[i]) {
-        wb2[i].loserNextMatchId = m.id;
-        wb2[i].loserNextSlot = 'B';
-      }
-    });
-  }
-
-  tournament.state.loserBracketVersion = 2;
-  replayCompletedMatches(tournament);
 }
 
 function resolveByeMatches(tournament) {
@@ -309,9 +262,12 @@ export function refreshDerivedState(tournament) {
   }
 
   tournament.updatedAt = nowIso();
-  repairDoubleEliminationLosers(tournament);
   resolveByeMatches(tournament);
-  replayCompletedMatches(tournament);
+  if (tournament.format === FORMATS.DOUBLE_ELIMINATION) {
+    syncDoubleElimParticipants(tournament);
+  } else {
+    replayCompletedMatches(tournament);
+  }
   return tournament;
 }
 

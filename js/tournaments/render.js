@@ -6,6 +6,13 @@ export function escapeHtml(str) {
   return div.innerHTML;
 }
 
+function bracketLabel(bracket) {
+  if (bracket === 'winner') return 'Vainqueurs';
+  if (bracket === 'loser') return 'Repêchage';
+  if (bracket === 'final') return 'Finale';
+  return bracket;
+}
+
 function isFinalMatch(match) {
   return (
     match.bracket === 'final' ||
@@ -84,7 +91,7 @@ export function renderMatchCard(tournament, match) {
     <article class="t-match ${completed ? 't-match--done' : ''} ${isBye ? 't-match--bye' : ''}" data-match-id="${match.id}">
       <header class="t-match-header">
         <span>${escapeHtml(match.roundName || `Tour ${match.round}`)}</span>
-        ${match.bracket ? `<span class="t-match-bracket">${escapeHtml(match.bracket)}</span>` : ''}
+        ${match.bracket ? `<span class="t-match-bracket">${escapeHtml(bracketLabel(match.bracket))}</span>` : ''}
       </header>
       <div class="t-match-body">
         <div class="t-match-player ${match.winnerId === match.participantAId ? 't-match-player--win' : ''} ${waitingA ? 't-match-player--wait' : ''}">

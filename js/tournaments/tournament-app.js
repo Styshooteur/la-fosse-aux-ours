@@ -26,8 +26,8 @@ import {
   renderEliminationBracket,
   exportTournamentJson,
   exportBracketPng,
-  renderDoubleEliminationFinale,
 } from './render.js';
+import { renderDoubleEliminationView } from './render-double-elim.js';
 
 export function initTournamentsAdmin({ root, getPin, showStatus }) {
   let view = 'list';
@@ -255,13 +255,7 @@ export function initTournamentsAdmin({ root, getPin, showStatus }) {
     if (t.format === FORMATS.SINGLE_ELIMINATION) {
       body = renderEliminationBracket(t);
     } else if (t.format === FORMATS.DOUBLE_ELIMINATION) {
-      body = `
-        <h3 class="t-subtitle">Winner Bracket</h3>
-        ${renderEliminationBracket(t, 'winner')}
-        <h3 class="t-subtitle">Loser Bracket</h3>
-        <p class="t-note">Faites défiler horizontalement si besoin — les finales sont affichées en bas.</p>
-        ${renderEliminationBracket(t, 'loser', { excludeLastLbRound: true })}
-        ${renderDoubleEliminationFinale(t)}`;
+      body = renderDoubleEliminationView(t);
     } else if (t.format === FORMATS.ROUND_ROBIN) {
       body = `
         <div class="t-match-list">${t.state.matches.map((m) => renderMatchCard(t, m)).join('')}</div>
