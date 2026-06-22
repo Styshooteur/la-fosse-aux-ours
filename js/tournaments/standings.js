@@ -16,7 +16,7 @@ export function emptyStanding(participantId) {
   };
 }
 
-export function computeStandings(tournament, { groupId = null, onlyCompleted = true } = {}) {
+export function computeStandings(tournament, { groupId = null, onlyCompleted = true, maxSwissRound = null } = {}) {
   const stats = new Map();
 
   let groupParticipantIds = null;
@@ -43,6 +43,7 @@ export function computeStandings(tournament, { groupId = null, onlyCompleted = t
 
   const matches = tournament.state.matches.filter((m) => {
     if (groupId !== null && m.groupId !== groupId) return false;
+    if (maxSwissRound !== null && (!m.swissRound || m.swissRound > maxSwissRound)) return false;
     if (onlyCompleted && m.status !== 'completed') return false;
     return m.participantAId && m.participantBId;
   });

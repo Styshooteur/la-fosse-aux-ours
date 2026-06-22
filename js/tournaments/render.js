@@ -1,4 +1,6 @@
 import { participantById, participantName } from './utils.js';
+import { computeStandings } from './standings.js';
+import { STATUS } from './types.js';
 
 export function escapeHtml(str) {
   const div = document.createElement('div');
@@ -252,6 +254,45 @@ export function renderDoubleEliminationFinale(tournament) {
   }
   html += '</section>';
   return html;
+}
+
+function getSwissRoundNumbers(tournament) {
+  const rounds = [
+    ...new Set(tournament.state.matches.map((m) => m.swissRound).filter((r) => r != null)),
+  ].sort((a, b) => a - b);
+  return rounds.length ? rounds : [1];
+}
+
+export function renderSwissView(tournament, { canAdvance = false } = {}) {
+  const totalRounds = tournament.settings.swissRounds || 1;
+  const roundNumbers = getSwissRoundNumbers(tournament);
+  const showNextButton =
+    tournament.status !== STATUS.COMPLETED &&
+    (tournament.settings.swissCurrentRound || 1) < totalRounds;
+
+  const roundsHtml = roundNumbers
+    .map((roundNum) => {
+      const roundMatches = tournament.state.matches.filter((m) => m.swissRound === roundNum);
+      const standings = computeStandings(tournament, { maxSwissRound: roundNum });
+      return `
+        <section class="t-swiss-round">
+          <p class="t-swiss-round-label">Ronde ${roundNum} / ${totalRounds}</p>
+          <div class="t-match-list">${roundMatches.map((m) => renderMatchCard(tournament, m)).join('')}</div>
+          <h3 class="t-subtitle">Classement</h3>
+          ${renderStandingsTable(standings, { showBuchholz: true })}
+        </section>`;
+    })
+    .join('');
+
+  const nextBtn = showNextButton
+    ? `<div class="t-swiss-actions">
+        <button type="button" class="t-btn t-btn--primary" id="t-swiss-next" ${canAdvance ? '' : 'disabled'}>
+          Générer la ronde suivante
+        </button>
+      </div>`
+    : '';
+
+  return `<div class="t-swiss-view" id="t-bracket-export">${roundsHtml}${nextBtn}</div>`;
 }
 
 export function exportTournamentJson(tournament) {

@@ -26,6 +26,7 @@ import {
   renderEliminationBracket,
   exportTournamentJson,
   exportBracketPng,
+  renderSwissView,
 } from './render.js';
 import { renderDoubleEliminationView } from './render-double-elim.js';
 
@@ -279,16 +280,7 @@ export function initTournamentsAdmin({ root, getPin, showStatus }) {
         : '';
       body = groupsHtml + knockout;
     } else if (t.format === FORMATS.SWISS) {
-      const round = t.settings.swissCurrentRound || 1;
-      const roundMatches = t.state.matches.filter((m) => m.swissRound === round);
-      body = `
-        <p class="t-note">Ronde ${round} / ${t.settings.swissRounds}</p>
-        <div class="t-match-list">${roundMatches.map((m) => renderMatchCard(t, m)).join('')}</div>
-        <h3 class="t-subtitle">Classement</h3>
-        ${renderStandingsTable(t.state.standings, { showBuchholz: true })}
-        <button type="button" class="t-btn t-btn--primary" id="t-swiss-next" ${swissCanAdvance(t) ? '' : 'disabled'}>
-          Générer la ronde suivante
-        </button>`;
+      body = renderSwissView(t, { canAdvance: swissCanAdvance(t) });
     }
 
     const participantsHtml = t.participants
