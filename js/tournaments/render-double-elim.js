@@ -11,7 +11,7 @@ const EXPLAINER = `
     </ul>
   </div>`;
 
-function renderRoundSection(title, rounds, tournament) {
+function renderRoundSection(title, rounds, tournament, readonly = false) {
   if (!rounds.length) return '';
 
   const roundsHtml = rounds
@@ -40,8 +40,8 @@ export function renderDoubleEliminationView(tournament, { readonly = false } = {
   const { wbRounds, lbRounds, grandFinal } = getDoubleElimRounds(tournament);
 
   let html = EXPLAINER;
-  html += renderRoundSection('Bracket Vainqueurs', wbRounds, tournament);
-  html += renderRoundSection('Bracket Repêchage (Loser)', lbRounds, tournament);
+  html += renderRoundSection('Bracket Vainqueurs', wbRounds, tournament, readonly);
+  html += renderRoundSection('Bracket Repêchage (Loser)', lbRounds, tournament, readonly);
 
   if (grandFinal) {
     html += `

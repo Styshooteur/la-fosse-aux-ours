@@ -59,6 +59,15 @@ export function renderLiveTournamentCard(tournament) {
     tournament.settings?.participantCount ||
     0;
 
+  let bracketHtml;
+  try {
+    bracketHtml = renderTournamentBracket(tournament);
+  } catch (err) {
+    console.error('Erreur rendu tournoi', tournament.id, err);
+    bracketHtml =
+      '<p class="t-empty">Impossible d\'afficher le bracket de ce tournoi.</p>';
+  }
+
   return `
     <article class="live-event-card" data-tournament-id="${escapeHtml(tournament.id)}">
       <header class="live-event-header">
@@ -75,7 +84,7 @@ export function renderLiveTournamentCard(tournament) {
         </span>
       </header>
       <div class="live-event-bracket tournament-view-body t-public-readonly">
-        ${renderTournamentBracket(tournament)}
+        ${bracketHtml}
       </div>
     </article>`;
 }

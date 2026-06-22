@@ -36,7 +36,13 @@ function applyTournaments(tournaments) {
   if (sig === lastSig) return;
   lastSig = sig;
 
-  container.innerHTML = renderLiveEventsPage(tournaments);
+  try {
+    container.innerHTML = renderLiveEventsPage(tournaments);
+  } catch (err) {
+    console.error('Erreur affichage événements', err);
+    container.innerHTML =
+      '<p class="live-events-empty">Impossible d\'afficher les événements pour le moment.</p>';
+  }
 }
 
 async function fetchLiveTournaments() {
