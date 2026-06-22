@@ -92,27 +92,39 @@ export function generateDoubleElimination(participants, seedMode = 'random') {
 
   for (let wr = 2; wr <= wbRounds; wr += 1) {
     const wbRound = wbByRound[wr - 1];
-    const cross = [];
-    for (let i = 0; i < lbPrev.length; i += 1) {
-      const m = createMatch(lbRound, `Repêchage — Tour ${lbRound}`, 'loser', {
-        lbRound,
-        deHint: `Survivant repêchage vs perdant vainqueurs (tour ${wr})`,
-      });
-      linkWinner(lbPrev[i], m, 'A');
-      linkLoser(wbRound[i], m, 'B');
-      cross.push(m);
-      matches.push(m);
+    const isLastWbRound = wr === wbRounds;
+    // S'il ne reste qu'un survivant LB (après consolidation), il va directement en
+    // grande finale — pas de tour « cross » supplémentaire vs le perdant WB final.
+    const skipFinalCross = isLastWbRound && lbPrev.length === 1 && lbByRound.length > 1;
+
+    if (!skipFinalCross) {
+      const cross = [];
+      for (let i = 0; i < lbPrev.length; i += 1) {
+        const m = createMatch(lbRound, `Repêchage — Tour ${lbRound}`, 'loser', {
+          lbRound,
+          deHint: `Survivant repêchage vs perdant vainqueurs (tour ${wr})`,
+          dePhase: 'cross',
+        });
+        linkWinner(lbPrev[i], m, 'A');
+        linkLoser(wbRound[i], m, 'B');
+        cross.push(m);
+        matches.push(m);
+      }
+      lbByRound.push(cross);
+      lbRound += 1;
+      lbPrev = cross;
     }
-    lbByRound.push(cross);
-    lbRound += 1;
-    lbPrev = cross;
 
     if (lbPrev.length > 1) {
       const merge = [];
       for (let i = 0; i < lbPrev.length; i += 2) {
         const m = createMatch(lbRound, `Repêchage — Tour ${lbRound}`, 'loser', {
           lbRound,
-          deHint: 'Vainqueurs du tour précédent s\'affrontent',
+          deHint:
+            isLastWbRound && i + 2 >= lbPrev.length
+              ? 'Finale repêchage — le vainqueur affronte le champion vainqueurs en grande finale'
+              : 'Vainqueurs du tour précédent s\'affrontent',
+          dePhase: 'merge',
         });
         linkWinner(lbPrev[i], m, 'A');
         linkWinner(lbPrev[i + 1], m, 'B');
@@ -134,12 +146,19 @@ export function generateDoubleElimination(participants, seedMode = 'random') {
   linkWinner(wbFinal, grandFinal, 'A');
   linkWinner(lbChampMatch, grandFinal, 'B');
 
+  const lastLbRound = lbByRound[lbByRound.length - 1];
+  if (lastLbRound?.length === 1 && lastLbRound[0].dePhase === 'merge') {
+    lastLbRound[0].roundName = 'Repêchage — Finale';
+    lastLbRound[0].deHint =
+      'Finale repêchage — le vainqueur affronte le champion vainqueurs en grande finale';
+  }
+
   return {
     matches,
     wbByRound,
     lbByRound,
     phase: 'bracket',
-    deVersion: 3,
+    deVersion: 4,
   };
 }
 
@@ -171,14 +190,14 @@ export function getDoubleElimRounds(tournament) {
   return { wbRounds: sortKeys(wb), lbRounds: sortKeys(lb), grandFinal };
 }
 
-/** Reconstruit les liens WB/LB pour les tournois existants (v1/v2). */
+/** Reconstruit les liens WB/LB pour les tournois existants. */
 export function rebuildDoubleElimLinks(tournament) {
   if (tournament.format !== FORMATS.DOUBLE_ELIMINATION) return;
 
   const wbMatches = tournament.state.matches
     .filter((m) => m.bracket === 'winner')
     .sort((a, b) => a.round - b.round || a.id.localeCompare(b.id));
-  const lbMatches = tournament.state.matches
+  let lbMatches = tournament.state.matches
     .filter((m) => m.bracket === 'loser')
     .sort((a, b) => (a.lbRound ?? a.round) - (b.lbRound ?? b.round) || a.id.localeCompare(b.id));
   const grandFinal = tournament.state.matches.find((m) => m.bracket === 'final');
@@ -189,9 +208,21 @@ export function rebuildDoubleElimLinks(tournament) {
   const lbRoundKeys = [...new Set(lbMatches.map((m) => m.lbRound ?? m.round))].sort(
     (a, b) => a - b
   );
-  const lbByRound = lbRoundKeys.map((key) =>
+  let lbByRound = lbRoundKeys.map((key) =>
     lbMatches.filter((m) => (m.lbRound ?? m.round) === key)
   );
+
+  // Supprime le tour LB « cross » final en trop (ancien algorithme v3).
+  if (lbByRound.length > 2) {
+    const last = lbByRound[lbByRound.length - 1];
+    const prev = lbByRound[lbByRound.length - 2];
+    if (last.length === 1 && prev.length === 1) {
+      const orphanRound = lbByRound.pop();
+      const orphanIds = new Set(orphanRound.map((m) => m.id));
+      lbMatches = lbMatches.filter((m) => !orphanIds.has(m.id));
+      tournament.state.matches = tournament.state.matches.filter((m) => !orphanIds.has(m.id));
+    }
+  }
 
   for (const m of [...wbMatches, ...lbMatches, grandFinal].filter(Boolean)) {
     m.nextMatchId = null;
@@ -220,16 +251,21 @@ export function rebuildDoubleElimLinks(tournament) {
   let lbPrevRound = lbByRound[0];
 
   for (let wri = 1; wri < wbByRound.length; wri += 1) {
-    const cross = lbByRound[lbRoundIndex];
-    if (!cross || !lbPrevRound) break;
+    const isLastWbRound = wri === wbByRound.length - 1;
+    const skipFinalCross = isLastWbRound && lbPrevRound?.length === 1 && lbByRound.length > 1;
 
-    for (let i = 0; i < cross.length; i += 1) {
-      linkWinner(lbPrevRound[i], cross[i], 'A');
-      if (wbByRound[wri][i]) linkLoser(wbByRound[wri][i], cross[i], 'B');
+    if (!skipFinalCross) {
+      const cross = lbByRound[lbRoundIndex];
+      if (!cross || !lbPrevRound) break;
+
+      for (let i = 0; i < cross.length; i += 1) {
+        linkWinner(lbPrevRound[i], cross[i], 'A');
+        if (wbByRound[wri][i]) linkLoser(wbByRound[wri][i], cross[i], 'B');
+      }
+
+      lbRoundIndex += 1;
+      lbPrevRound = cross;
     }
-
-    lbRoundIndex += 1;
-    lbPrevRound = cross;
 
     if (lbPrevRound.length > 1 && lbRoundIndex < lbByRound.length) {
       const merge = lbByRound[lbRoundIndex];
@@ -247,8 +283,8 @@ export function rebuildDoubleElimLinks(tournament) {
   if (grandFinal && wbByRound.length) {
     linkWinner(wbByRound[wbByRound.length - 1][0], grandFinal, 'A');
   }
-  if (grandFinal && lbByRound.length) {
-    linkWinner(lbByRound[lbByRound.length - 1][0], grandFinal, 'B');
+  if (grandFinal && lbPrevRound?.length) {
+    linkWinner(lbPrevRound[0], grandFinal, 'B');
   }
 
   const wbNames = getRoundNames(wbByRound.length);
@@ -260,17 +296,16 @@ export function rebuildDoubleElimLinks(tournament) {
   });
 
   lbByRound.forEach((round, i) => {
-    const hints = [
-      'Perdants du 1er tour (vainqueurs)',
-      null,
-      null,
-      null,
-    ];
+    const isLast = i === lbByRound.length - 1;
     round.forEach((m) => {
       m.lbRound = i + 1;
       m.round = i + 1;
-      m.roundName = `Repêchage — Tour ${i + 1}`;
-      if (!m.deHint) m.deHint = hints[i] || 'Survivants du repêchage';
+      m.roundName = isLast && round.length === 1 && m.dePhase === 'merge' ? `Repêchage — Finale` : `Repêchage — Tour ${i + 1}`;
+      if (i === 0) m.deHint = 'Perdants du 1er tour (vainqueurs)';
+      else if (isLast && round.length === 1 && m.dePhase === 'merge') {
+        m.roundName = 'Repêchage — Finale';
+        m.deHint = 'Finale repêchage — le vainqueur affronte le champion vainqueurs en grande finale';
+      } else if (!m.deHint) m.deHint = 'Survivants du repêchage';
     });
   });
 
@@ -278,7 +313,7 @@ export function rebuildDoubleElimLinks(tournament) {
     grandFinal.deHint = 'Vainqueur du bracket vainqueurs vs vainqueur du repêchage';
   }
 
-  tournament.state.deVersion = 3;
+  tournament.state.deVersion = 4;
   delete tournament.state.loserBracketVersion;
 }
 
@@ -286,7 +321,7 @@ export function rebuildDoubleElimLinks(tournament) {
 export function syncDoubleElimParticipants(tournament) {
   if (tournament.format !== FORMATS.DOUBLE_ELIMINATION) return;
 
-  if ((tournament.state.deVersion ?? tournament.state.loserBracketVersion ?? 0) < 3) {
+  if ((tournament.state.deVersion ?? tournament.state.loserBracketVersion ?? 0) < 4) {
     rebuildDoubleElimLinks(tournament);
   }
 
