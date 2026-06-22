@@ -104,52 +104,59 @@ export function generateDoubleElimination(participants, seedMode = 'random') {
     wbByRound.push(current);
   }
 
-  const lbRoundCount = wbRounds * 2 - 2;
-  const lbByRound = Array.from({ length: lbRoundCount }, () => []);
+  const lbByRound = [];
+  let lbTour = 1;
 
-  for (let lr = 0; lr < lbRoundCount; lr += 1) {
-    const count = lr === 0 ? n / 4 : Math.max(1, Math.floor(n / Math.pow(2, Math.floor(lr / 2) + 2)));
-    for (let i = 0; i < count; i += 1) {
-      const m = createEmptyMatch(lr + 1, `Loser — Tour ${lr + 1}`, 'loser');
+  const lb1 = [];
+  for (let i = 0; i < n / 4; i += 1) {
+    const m = createEmptyMatch(lbTour, `Loser — Tour ${lbTour}`, 'loser');
+    linkLoser(wbByRound[0][i * 2], m, 'A');
+    linkLoser(wbByRound[0][i * 2 + 1], m, 'B');
+    lb1.push(m);
+    matches.push(m);
+  }
+  lbByRound.push(lb1);
+  lbTour += 1;
+
+  let lbPrev = lb1;
+
+  for (let wr = 2; wr <= wbRounds; wr += 1) {
+    const wbRound = wbByRound[wr - 1];
+    const cross = [];
+    for (let i = 0; i < lbPrev.length; i += 1) {
+      const m = createEmptyMatch(lbTour, `Loser — Tour ${lbTour}`, 'loser');
+      linkWinner(lbPrev[i], m, 'A');
+      if (wbRound[i]) linkLoser(wbRound[i], m, 'B');
+      cross.push(m);
       matches.push(m);
-      lbByRound[lr].push(m);
     }
-  }
+    lbByRound.push(cross);
+    lbTour += 1;
+    lbPrev = cross;
 
-  wbByRound[0].forEach((m, i) => {
-    const target = lbByRound[0][Math.floor(i / 2)];
-    if (target) linkLoser(m, target, i % 2 === 0 ? 'A' : 'B');
-  });
-
-  for (let wr = 1; wr < wbByRound.length; wr += 1) {
-    wbByRound[wr].forEach((m, i) => {
-      const lbRound = wr * 2 - 1;
-      const target = lbByRound[lbRound]?.[Math.min(i, (lbByRound[lbRound]?.length || 1) - 1)];
-      if (target) linkLoser(m, target, 'B');
-    });
-  }
-
-  for (let lr = 0; lr < lbRoundCount - 1; lr += 1) {
-    const current = lbByRound[lr];
-    const next = lbByRound[lr + 1];
-    if (!next?.length) continue;
-    for (let i = 0; i < current.length; i += 2) {
-      if (!current[i + 1]) continue;
-      const target = next[Math.floor(i / 2)] || next[0];
-      if (!target) continue;
-      linkWinner(current[i], target, 'A');
-      linkWinner(current[i + 1], target, 'B');
+    if (lbPrev.length > 1) {
+      const consolidate = [];
+      for (let i = 0; i < lbPrev.length; i += 2) {
+        const m = createEmptyMatch(lbTour, `Loser — Tour ${lbTour}`, 'loser');
+        linkWinner(lbPrev[i], m, 'A');
+        if (lbPrev[i + 1]) linkWinner(lbPrev[i + 1], m, 'B');
+        consolidate.push(m);
+        matches.push(m);
+      }
+      lbByRound.push(consolidate);
+      lbTour += 1;
+      lbPrev = consolidate;
     }
   }
 
   const wbFinal = wbByRound[wbByRound.length - 1][0];
-  const lbFinal = lbByRound[lbByRound.length - 1][0];
-  const grandFinal = createEmptyMatch(wbRounds + lbRoundCount, 'Grande finale', 'final');
+  const lbLast = lbPrev[0];
+  const grandFinal = createEmptyMatch(wbRounds + lbByRound.length, 'Grande finale', 'final');
   matches.push(grandFinal);
   linkWinner(wbFinal, grandFinal, 'A');
-  if (lbFinal) linkWinner(lbFinal, grandFinal, 'B');
+  if (lbLast) linkWinner(lbLast, grandFinal, 'B');
 
-  return { matches, wbByRound, lbByRound, phase: 'bracket' };
+  return { matches, wbByRound, lbByRound, phase: 'bracket', loserBracketVersion: 2 };
 }
 
 export function generateRoundRobin(participants) {

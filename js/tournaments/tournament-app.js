@@ -26,6 +26,7 @@ import {
   renderEliminationBracket,
   exportTournamentJson,
   exportBracketPng,
+  renderDoubleEliminationFinale,
 } from './render.js';
 
 export function initTournamentsAdmin({ root, getPin, showStatus }) {
@@ -258,9 +259,9 @@ export function initTournamentsAdmin({ root, getPin, showStatus }) {
         <h3 class="t-subtitle">Winner Bracket</h3>
         ${renderEliminationBracket(t, 'winner')}
         <h3 class="t-subtitle">Loser Bracket</h3>
-        ${renderEliminationBracket(t, 'loser')}
-        <h3 class="t-subtitle">Grande finale</h3>
-        ${renderEliminationBracket(t, 'final')}`;
+        <p class="t-note">Faites défiler horizontalement si besoin — les finales sont affichées en bas.</p>
+        ${renderEliminationBracket(t, 'loser', { excludeLastLbRound: true })}
+        ${renderDoubleEliminationFinale(t)}`;
     } else if (t.format === FORMATS.ROUND_ROBIN) {
       body = `
         <div class="t-match-list">${t.state.matches.map((m) => renderMatchCard(t, m)).join('')}</div>

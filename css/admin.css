@@ -1054,8 +1054,18 @@
   color: var(--ink-muted);
 }
 
-.t-group {
-  margin-bottom: 2rem;
+.t-finals-section {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 2px solid rgba(60, 40, 25, 0.2);
+}
+
+.t-finals-row {
+  max-width: 720px;
+}
+
+.t-finals-row .t-match {
+  max-width: 100%;
 }
 
 @media (max-width: 768px) {

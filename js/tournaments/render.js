@@ -154,7 +154,12 @@ function matchTopPx(roundIndex, matchIndex, unitPx) {
 }
 
 export function renderEliminationBracket(tournament, bracketFilter = null, options = {}) {
-  const matches = filterBracketMatches(tournament, bracketFilter, options);
+  let matches = filterBracketMatches(tournament, bracketFilter, options);
+
+  if (options.excludeLastLbRound && bracketFilter === 'loser' && matches.length) {
+    const maxRound = Math.max(...matches.map((m) => m.round));
+    matches = matches.filter((m) => m.round < maxRound);
+  }
 
   if (!matches.length) return '<p class="t-empty">Aucun match.</p>';
 
@@ -212,6 +217,34 @@ export function renderEliminationBracket(tournament, bracketFilter = null, optio
       <svg class="t-bracket-svg" width="${svgW}" height="${colHeight + 60}" viewBox="0 0 ${svgW} ${colHeight + 60}" aria-hidden="true">${svgLines}</svg>
       <div class="t-bracket-flex" style="min-height:${colHeight + 60}px;width:${svgW}px">${colHtml}</div>
     </div>`;
+}
+
+export function renderDoubleEliminationFinale(tournament) {
+  const lbMatches = tournament.state.matches.filter((m) => m.bracket === 'loser');
+  const grandFinal = tournament.state.matches.find((m) => m.bracket === 'final');
+
+  if (!lbMatches.length && !grandFinal) return '';
+
+  const maxLbRound = Math.max(...lbMatches.map((m) => m.round), 0);
+  const lastLbMatches = lbMatches.filter((m) => m.round === maxLbRound);
+
+  let html = '<section class="t-finals-section">';
+  if (lastLbMatches.length) {
+    html += `
+      <h4 class="t-subtitle">Finale du Loser Bracket</h4>
+      <div class="t-match-list t-finals-row">
+        ${lastLbMatches.map((m) => renderMatchCard(tournament, m)).join('')}
+      </div>`;
+  }
+  if (grandFinal) {
+    html += `
+      <h4 class="t-subtitle">Grande finale</h4>
+      <div class="t-match-list t-finals-row">
+        ${renderMatchCard(tournament, grandFinal)}
+      </div>`;
+  }
+  html += '</section>';
+  return html;
 }
 
 export function exportTournamentJson(tournament) {
