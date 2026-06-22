@@ -94,6 +94,7 @@ export function createTournament(payload) {
     status: STATUS.DRAFT,
     createdAt: nowIso(),
     updatedAt: nowIso(),
+    broadcast: false,
     settings: {
       participantCount,
       seedMode,
@@ -367,6 +368,7 @@ export function duplicateTournament(source) {
   const copy = JSON.parse(JSON.stringify(source));
   copy.id = generateId('t');
   copy.name = `${source.name} (copie)`;
+  copy.broadcast = false;
   copy.status = STATUS.DRAFT;
   copy.createdAt = nowIso();
   copy.updatedAt = nowIso();

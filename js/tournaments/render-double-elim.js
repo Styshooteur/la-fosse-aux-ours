@@ -23,7 +23,7 @@ function renderRoundSection(title, rounds, tournament) {
           ${round.hint ? `<p class="t-de-hint">${escapeHtml(round.hint)}</p>` : ''}
         </header>
         <div class="t-match-list">
-          ${round.matches.map((m) => renderMatchCard(tournament, m)).join('')}
+          ${round.matches.map((m) => renderMatchCard(tournament, m, { readonly })).join('')}
         </div>
       </section>`
     )
@@ -36,7 +36,7 @@ function renderRoundSection(title, rounds, tournament) {
     </div>`;
 }
 
-export function renderDoubleEliminationView(tournament) {
+export function renderDoubleEliminationView(tournament, { readonly = false } = {}) {
   const { wbRounds, lbRounds, grandFinal } = getDoubleElimRounds(tournament);
 
   let html = EXPLAINER;
@@ -49,7 +49,7 @@ export function renderDoubleEliminationView(tournament) {
         <h3 class="t-subtitle">Grande finale</h3>
         <p class="t-de-hint">${escapeHtml(grandFinal.deHint || 'Le champion se décide ici.')}</p>
         <div class="t-match-list t-finals-row">
-          ${renderMatchCard(tournament, grandFinal)}
+          ${renderMatchCard(tournament, grandFinal, { readonly })}
         </div>
       </section>`;
   }

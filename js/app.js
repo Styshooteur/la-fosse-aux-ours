@@ -1,8 +1,12 @@
 import { CONFIG } from './config.js?v=20260620f';
 import { fetchLeaderboard, fetchFighterCards, gradeToClass } from './sheets.js?v=20260620f';
+import { initLiveEvents, teardownLiveEvents } from './events.js?v=20260620m';
+
 let fightersData = [];
 let fighterCards = {};
 let refreshTimer = null;
+let activePanel = 'leaderboard';
+let eventsStarted = false;
 
 const $ = (id) => document.getElementById(id);
 
@@ -197,14 +201,44 @@ async function loadData() {
   }
 }
 
+function switchPanel(panel) {
+  activePanel = panel;
+  const leaderboard = $('panel-leaderboard');
+  const events = $('panel-events');
+  const navLeaderboard = $('nav-leaderboard');
+  const navEvents = $('nav-events');
+
+  if (leaderboard) leaderboard.classList.toggle('hidden', panel !== 'leaderboard');
+  if (events) events.classList.toggle('hidden', panel !== 'events');
+  navLeaderboard?.classList.toggle('site-nav-btn--active', panel === 'leaderboard');
+  navEvents?.classList.toggle('site-nav-btn--active', panel === 'events');
+
+  if (panel === 'events') {
+    if (!eventsStarted) {
+      eventsStarted = true;
+      initLiveEvents();
+    }
+  } else {
+    teardownLiveEvents();
+    eventsStarted = false;
+  }
+}
+
 function setupEventListeners() {
-  $('btn-refresh').addEventListener('click', loadData);
-  $('card-close').addEventListener('click', closeFighterCard);
-  $('fighter-modal').addEventListener('click', (e) => {
+  $('btn-refresh')?.addEventListener('click', loadData);
+  $('card-close')?.addEventListener('click', closeFighterCard);
+  $('fighter-modal')?.addEventListener('click', (e) => {
     if (e.target === $('fighter-modal')) closeFighterCard();
   });
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') closeFighterCard();
+  });
+
+  document.querySelectorAll('.site-nav-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const panel = btn.dataset.panel;
+      if (panel) switchPanel(panel);
+    });
   });
 }
 
@@ -215,6 +249,7 @@ function startAutoRefresh() {
 
 async function init() {
   setupEventListeners();
+  switchPanel('leaderboard');
   await loadData();
   startAutoRefresh();
 }

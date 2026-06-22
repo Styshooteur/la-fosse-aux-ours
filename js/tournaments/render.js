@@ -50,7 +50,7 @@ function crownIfWinner(match, participantId, completed) {
   return championCrown(match);
 }
 
-export function renderMatchCard(tournament, match) {
+export function renderMatchCard(tournament, match, { readonly = false } = {}) {
   const pA = participantById(tournament, match.participantAId);
   const pB = participantById(tournament, match.participantBId);
   const colorA = pA?.color || '#8f6118';
@@ -70,7 +70,13 @@ export function renderMatchCard(tournament, match) {
   const nameA = waitingA ? 'En attente' : participantName(tournament, match.participantAId);
   const nameB = waitingB ? 'En attente' : participantName(tournament, match.participantBId);
 
-  const scoreBlock = canPlay
+  const scoreBlock = readonly
+    ? completed
+      ? `<span class="t-match-score">${match.scoreA ?? '—'} — ${match.scoreB ?? '—'}</span>`
+      : isBye
+        ? '<span class="t-match-score t-match-score--bye">Exempt — passage automatique</span>'
+        : `<span class="t-match-score t-match-score--wait">${waitingA || waitingB ? 'En attente des qualifiés' : '—'}</span>`
+    : canPlay
     ? `<div class="t-match-scores">
         <input type="number" min="0" class="t-score-input" data-side="A" value="${match.scoreA ?? ''}" placeholder="0" />
         <span>vs</span>
@@ -83,7 +89,7 @@ export function renderMatchCard(tournament, match) {
         : `<span class="t-match-score t-match-score--wait">${waitingA || waitingB ? 'En attente des qualifiés' : '—'}</span>`;
 
   let actions = '';
-  if (canPlay) {
+  if (!readonly && canPlay) {
     actions = completed
       ? `<button type="button" class="t-btn t-btn--ghost t-btn-edit" data-match-id="${match.id}">Éditer</button>`
       : `<button type="button" class="t-btn t-btn--primary t-btn-validate" data-match-id="${match.id}">Valider le résultat</button>`;
@@ -163,9 +169,10 @@ function matchTopPx(roundIndex, matchIndex, unitPx) {
 }
 
 export function renderEliminationBracket(tournament, bracketFilter = null, options = {}) {
-  let matches = filterBracketMatches(tournament, bracketFilter, options);
+  const { knockoutOnly = false, excludeLastLbRound = false, readonly = false } = options;
+  let matches = filterBracketMatches(tournament, bracketFilter, { knockoutOnly });
 
-  if (options.excludeLastLbRound && bracketFilter === 'loser' && matches.length) {
+  if (excludeLastLbRound && bracketFilter === 'loser' && matches.length) {
     const maxRound = Math.max(...matches.map((m) => m.round));
     matches = matches.filter((m) => m.round < maxRound);
   }
@@ -207,7 +214,7 @@ export function renderEliminationBracket(tournament, bracketFilter = null, optio
             }
           }
 
-          return `<div class="t-bracket-cell" style="margin-top:${Math.max(0, marginTop)}px">${renderMatchCard(tournament, match)}</div>`;
+          return `<div class="t-bracket-cell" style="margin-top:${Math.max(0, marginTop)}px">${renderMatchCard(tournament, match, { readonly })}</div>`;
         })
         .join('');
 
@@ -263,10 +270,11 @@ function getSwissRoundNumbers(tournament) {
   return rounds.length ? rounds : [1];
 }
 
-export function renderSwissView(tournament, { canAdvance = false } = {}) {
+export function renderSwissView(tournament, { canAdvance = false, readonly = false } = {}) {
   const totalRounds = tournament.settings.swissRounds || 1;
   const roundNumbers = getSwissRoundNumbers(tournament);
   const showNextButton =
+    !readonly &&
     tournament.status !== STATUS.COMPLETED &&
     (tournament.settings.swissCurrentRound || 1) < totalRounds;
 
@@ -277,7 +285,7 @@ export function renderSwissView(tournament, { canAdvance = false } = {}) {
       return `
         <section class="t-swiss-round">
           <p class="t-swiss-round-label">Ronde ${roundNum} / ${totalRounds}</p>
-          <div class="t-match-list">${roundMatches.map((m) => renderMatchCard(tournament, m)).join('')}</div>
+          <div class="t-match-list">${roundMatches.map((m) => renderMatchCard(tournament, m, { readonly })).join('')}</div>
           <h3 class="t-subtitle">Classement</h3>
           ${renderStandingsTable(standings, { showBuchholz: true })}
         </section>`;

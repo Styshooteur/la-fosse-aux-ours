@@ -68,10 +68,34 @@ function toSummary(t) {
     name: t.name,
     format: t.format,
     status: t.status,
+    broadcast: Boolean(t.broadcast),
     participantCount: t.participants?.length || t.settings?.participantCount || 0,
     createdAt: t.createdAt,
     updatedAt: t.updatedAt,
   };
+}
+
+export function liveTournamentsSignature(tournaments) {
+  return tournaments
+    .map((t) => `${t.id}:${t.updatedAt}:${Boolean(t.broadcast)}`)
+    .sort()
+    .join('|');
+}
+
+export async function listLiveTournamentsFull() {
+  const index = await loadIndex();
+  const live = index.filter((t) => t.broadcast);
+  const tournaments = [];
+
+  for (const entry of live) {
+    const full = await loadTournamentFile(entry.id);
+    if (full && !full.deleted) {
+      tournaments.push(full);
+    }
+  }
+
+  tournaments.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+  return tournaments;
 }
 
 export async function listTournaments() {

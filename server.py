@@ -6,6 +6,7 @@ from pathlib import Path
 import base64
 import json
 import re
+import time
 import unicodedata
 import urllib.parse
 import urllib.request
@@ -57,6 +58,12 @@ class Handler(SimpleHTTPRequestHandler):
             return
         if self.path == '/api/tournaments' or self.path.startswith('/api/tournaments?'):
             self.serve_tournaments_get()
+            return
+        if self.path == '/api/tournaments/public' or self.path.startswith('/api/tournaments/public?'):
+            self.serve_tournaments_public()
+            return
+        if self.path == '/api/tournaments/stream' or self.path.startswith('/api/tournaments/stream?'):
+            self.serve_tournaments_stream()
             return
         super().do_GET()
 
@@ -151,10 +158,56 @@ class Handler(SimpleHTTPRequestHandler):
             'name': tournament['name'],
             'format': tournament['format'],
             'status': tournament['status'],
+            'broadcast': bool(tournament.get('broadcast')),
             'participantCount': len(tournament.get('participants', [])),
             'createdAt': tournament.get('createdAt'),
             'updatedAt': tournament.get('updatedAt'),
         }
+
+    def load_live_tournaments_full(self):
+        entries = [entry for entry in self.load_tournaments_index() if entry.get('broadcast')]
+        tournaments = []
+        for entry in entries:
+            path = TOURNAMENTS_DIR / f"{entry['id']}.json"
+            if path.exists():
+                tournament = load_json(path, None)
+                if tournament:
+                    tournaments.append(tournament)
+        tournaments.sort(key=lambda item: item.get('updatedAt', ''), reverse=True)
+        return tournaments
+
+    def live_tournaments_signature(self, tournaments):
+        parts = sorted(
+            f"{item.get('id')}:{item.get('updatedAt')}:{bool(item.get('broadcast'))}"
+            for item in tournaments
+        )
+        return '|'.join(parts)
+
+    def serve_tournaments_public(self):
+        self.send_json(200, {'tournaments': self.load_live_tournaments_full()})
+
+    def serve_tournaments_stream(self):
+        self.send_response(200)
+        self.send_header('Content-Type', 'text/event-stream; charset=utf-8')
+        self.send_header('Cache-Control', 'no-store')
+        self.send_header('Connection', 'keep-alive')
+        self.end_headers()
+
+        last_sig = ''
+        try:
+            while True:
+                tournaments = self.load_live_tournaments_full()
+                sig = self.live_tournaments_signature(tournaments)
+                if sig != last_sig:
+                    payload = json.dumps({'tournaments': tournaments}, ensure_ascii=False)
+                    self.wfile.write(f'data: {payload}\n\n'.encode('utf-8'))
+                    last_sig = sig
+                else:
+                    self.wfile.write(b': heartbeat\n\n')
+                self.wfile.flush()
+                time.sleep(1.5)
+        except (BrokenPipeError, ConnectionResetError, OSError):
+            return
 
     def serve_tournaments_get(self):
         parsed = urllib.parse.urlparse(self.path)

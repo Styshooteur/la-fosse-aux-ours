@@ -1,5 +1,5 @@
 import { FORMATS, FORMAT_LABELS, STATUS_LABELS, ELIM_SIZES, PARTICIPANT_COLORS } from './types.js';
-import { generateId, formatDate } from './utils.js';
+import { generateId, formatDate, nowIso } from './utils.js';
 import {
   createTournament,
   validateMatchResult,
@@ -76,11 +76,18 @@ export function initTournamentsAdmin({ root, getPin, showStatus }) {
       ? tournaments
           .map(
             (t) => `
-        <tr>
+        <tr class="${t.broadcast ? 't-row--live' : ''}">
           <td>${escapeHtml(t.name)}</td>
           <td>${escapeHtml(FORMAT_LABELS[t.format] || t.format)}</td>
           <td>${escapeHtml(STATUS_LABELS[t.status] || t.status)}</td>
           <td>${t.participantCount}</td>
+          <td>
+            <label class="t-broadcast-toggle" title="Diffusion sur le site public">
+              <input type="checkbox" data-action="broadcast" data-id="${t.id}" ${t.broadcast ? 'checked' : ''} aria-label="Diffusion publique" />
+              <span class="t-broadcast-slider" aria-hidden="true"></span>
+              <span class="t-broadcast-state ${t.broadcast ? 't-broadcast-state--on' : 't-broadcast-state--off'}">${t.broadcast ? 'En cours' : 'Inactif'}</span>
+            </label>
+          </td>
           <td>${formatDate(t.createdAt)}</td>
           <td class="t-actions">
             <button type="button" class="t-btn t-btn--primary" data-action="resume" data-id="${t.id}">Reprendre</button>
@@ -90,7 +97,7 @@ export function initTournamentsAdmin({ root, getPin, showStatus }) {
         </tr>`
           )
           .join('')
-      : '<tr><td colspan="6" class="t-empty">Aucun tournoi créé.</td></tr>';
+      : '<tr><td colspan="7" class="t-empty">Aucun tournoi créé.</td></tr>';
 
     $list.innerHTML = `
       <div class="t-list-header">
@@ -99,7 +106,7 @@ export function initTournamentsAdmin({ root, getPin, showStatus }) {
       </div>
       <table class="t-list-table">
         <thead>
-          <tr><th>Nom</th><th>Format</th><th>Statut</th><th>Participants</th><th>Créé le</th><th></th></tr>
+          <tr><th>Nom</th><th>Format</th><th>Statut</th><th>Participants</th><th>Diffusion</th><th>Créé le</th><th></th></tr>
         </thead>
         <tbody>${rows}</tbody>
       </table>`;
@@ -109,7 +116,7 @@ export function initTournamentsAdmin({ root, getPin, showStatus }) {
       showView('create');
     });
 
-    $list.querySelectorAll('[data-action]').forEach((btn) => {
+    $list.querySelectorAll('button[data-action]').forEach((btn) => {
       btn.addEventListener('click', async () => {
         const id = btn.dataset.id;
         const action = btn.dataset.action;
@@ -129,6 +136,29 @@ export function initTournamentsAdmin({ root, getPin, showStatus }) {
           await removeTournament(id, getPin());
           showStatus('Tournoi supprimé.');
           await loadList();
+        }
+      });
+    });
+
+    $list.querySelectorAll('input[data-action="broadcast"]').forEach((input) => {
+      input.addEventListener('change', async (e) => {
+        const id = e.target.dataset.id;
+        const enabled = e.target.checked;
+        try {
+          const tournament = await fetchTournament(id);
+          tournament.broadcast = enabled;
+          tournament.updatedAt = nowIso();
+          await persistTournament(tournament, getPin());
+          if (current?.id === id) current.broadcast = enabled;
+          const row = tournaments.find((x) => x.id === id);
+          if (row) row.broadcast = enabled;
+          showStatus(
+            enabled ? 'Diffusion activée — visible sur le site public.' : 'Diffusion désactivée.'
+          );
+          renderList();
+        } catch (err) {
+          e.target.checked = !enabled;
+          showStatus(err.message, true);
         }
       });
     });
