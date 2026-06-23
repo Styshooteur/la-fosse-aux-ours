@@ -3,9 +3,9 @@ import { computeStandings } from './standings.js';
 import { STATUS } from './types.js';
 import {
   computeBracketLayoutMetrics,
-  layoutBracketPositions,
-  columnBodyHeight,
-  connectorPath,
+  layoutBracketCenters,
+  centersToTops,
+  connectorPathFromCenters,
 } from './bracket-layout.js';
 
 export function escapeHtml(str) {
@@ -235,9 +235,11 @@ export function renderBracketTree(tournament, matches, options = {}) {
 
   if (!matches.length) return '<p class="t-empty">Aucun match.</p>';
 
+  const bracketIndex = new Map(matches.map((m, i) => [m.id, i]));
+
   const sortRoundMatches = (a, b) => {
     if (sortWithinRound) return sortWithinRound(a, b);
-    return a.id.localeCompare(b.id);
+    return bracketIndex.get(a.id) - bracketIndex.get(b.id);
   };
 
   const roundKeys = [...new Set(matches.map(getRoundKey))].sort((a, b) => a - b);
@@ -246,10 +248,10 @@ export function renderBracketTree(tournament, matches, options = {}) {
   );
 
   const metrics = computeBracketLayoutMetrics(rounds);
-  const positions = layoutBracketPositions(rounds, linkField, metrics);
-  const colHeights = rounds.map((rm) => columnBodyHeight(rm, positions, metrics));
-  const treeBodyHeight = Math.max(...colHeights, metrics.cardH);
-  const totalH = treeBodyHeight + metrics.roundHeaderH + metrics.treePadBottom;
+  const centers = layoutBracketCenters(rounds, linkField, metrics);
+  const positions = centersToTops(centers, metrics.cardH);
+  const treeBodyHeight = metrics.treeBodyHeight;
+  const totalH = metrics.treePadTop + treeBodyHeight + metrics.treePadBottom;
 
   let svgLines = '';
   const colHtml = rounds
@@ -257,14 +259,15 @@ export function renderBracketTree(tournament, matches, options = {}) {
       const cells = roundMatches
         .map((match) => {
           const top = positions.get(match.id);
+          const bodyCenter = centers.get(match.id);
 
           const nextId = match[linkField];
           if (colIndex < rounds.length - 1 && nextId) {
             const nextCol = rounds[colIndex + 1];
             const nextMatch = nextCol.find((m) => m.id === nextId);
             if (nextMatch) {
-              const topTo = positions.get(nextMatch.id);
-              svgLines += `<path d="${connectorPath(colIndex, top, topTo, metrics)}" class="t-bracket-conn t-bracket-conn--progress" fill="none" stroke-width="2" vector-effect="non-scaling-stroke"/>`;
+              const destCenter = centers.get(nextMatch.id);
+              svgLines += `<path d="${connectorPathFromCenters(colIndex, bodyCenter, destCenter, metrics)}" class="t-bracket-conn t-bracket-conn--progress" fill="none" stroke-width="2" vector-effect="non-scaling-stroke"/>`;
             }
           }
 

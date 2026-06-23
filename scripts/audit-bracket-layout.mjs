@@ -1,5 +1,5 @@
 /**
- * Audit layout bracket — 4 / 8 / 16 / 32 participants, tous formats arborescents.
+ * Audit layout bracket — vérifie centrage récursif et absence de chevauchement.
  * Usage: node scripts/audit-bracket-layout.mjs
  */
 import { generateSingleElimination } from '../js/tournaments/generators.js';
@@ -9,11 +9,11 @@ import { generateGroupStage } from '../js/tournaments/generators.js';
 import { generateSwissRound } from '../js/tournaments/generators.js';
 import {
   computeBracketLayoutMetrics,
-  layoutBracketPositions,
-  columnBodyHeight,
+  layoutBracketCenters,
+  centersToTops,
+  detectCenteringViolations,
   detectColumnOverlaps,
 } from '../js/tournaments/bracket-layout.js';
-import { FORMATS } from '../js/tournaments/types.js';
 
 const SIZES = [4, 8, 16, 32];
 
@@ -26,17 +26,31 @@ function makeParticipants(n) {
   }));
 }
 
-function auditTree(label, matches, getRoundKey) {
+function auditTree(label, matches, getRoundKey, sortWithinRound = null) {
+  const bracketIndex = new Map(matches.map((m, i) => [m.id, i]));
   const roundKeys = [...new Set(matches.map(getRoundKey))].sort((a, b) => a - b);
-  const rounds = roundKeys.map((k) => matches.filter((m) => getRoundKey(m) === k));
+  const rounds = roundKeys.map((k) =>
+    matches
+      .filter((m) => getRoundKey(m) === k)
+      .sort((a, b) => {
+        if (sortWithinRound) return sortWithinRound(a, b);
+        return bracketIndex.get(a.id) - bracketIndex.get(b.id);
+      })
+  );
   const metrics = computeBracketLayoutMetrics(rounds);
-  const positions = layoutBracketPositions(rounds, 'nextMatchId', metrics);
-  const colHeights = rounds.map((rm) => columnBodyHeight(rm, positions, metrics));
-  const treeHeight = Math.max(...colHeights, metrics.cardH);
+  const centers = layoutBracketCenters(rounds, 'nextMatchId', metrics);
+  const tops = centersToTops(centers, metrics.cardH);
+
   let issues = 0;
 
+  const centerViolations = detectCenteringViolations(rounds, 'nextMatchId', centers);
+  if (centerViolations.length) {
+    console.error(`  ✗ ${label}: ${centerViolations.length} violation(s) de centrage récursif`);
+    issues += centerViolations.length;
+  }
+
   rounds.forEach((rm, col) => {
-    const overlaps = detectColumnOverlaps(rm, positions, metrics);
+    const overlaps = detectColumnOverlaps(rm, tops, metrics);
     if (overlaps.length) {
       console.error(`  ✗ ${label} col ${col + 1}: ${overlaps.length} chevauchement(s)`);
       issues += overlaps.length;
@@ -44,8 +58,9 @@ function auditTree(label, matches, getRoundKey) {
   });
 
   const svgW = rounds.length * metrics.colW;
+  const totalH = metrics.roundHeaderH + metrics.treeBodyHeight;
   console.log(
-    `  ✓ ${label}: ${rounds.length} tours, H=${treeHeight}px, W=${svgW}px, pitch=${metrics.slotPitch}px`
+    `  ✓ ${label}: ${rounds.length} tours, bodyH=${metrics.treeBodyHeight}px, totalH=${totalH}px, W=${svgW}px, pitch=${metrics.slotPitch}px`
   );
   return issues;
 }
@@ -71,13 +86,12 @@ for (const n of SIZES) {
   const gs = generateGroupStage(parts, 2, 2);
   console.log(`  ✓ Group Stage: ${gs.groups.length} groupes, ${gs.matches.length} matchs`);
 
-  const swissTournament = {
-    participants: parts,
-    state: { matches: [] },
-  };
+  const swissTournament = { participants: parts, state: { matches: [] } };
   const r1 = generateSwissRound(swissTournament, 1);
   console.log(`  ✓ Swiss R1: ${r1.length} matchs`);
 }
 
-console.log(`\n${totalIssues === 0 ? '✅ Aucun chevauchement détecté' : `❌ ${totalIssues} problème(s)`}`);
+console.log(
+  `\n${totalIssues === 0 ? '✅ Centrage récursif OK, aucun chevauchement' : `❌ ${totalIssues} problème(s)`}`
+);
 process.exit(totalIssues > 0 ? 1 : 0);

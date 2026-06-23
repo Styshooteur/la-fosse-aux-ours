@@ -1,110 +1,161 @@
 /**
- * Métriques de layout pour les arbres d'élimination.
- * Basées sur le nombre réel de matchs par round — pas de compression artificielle.
+ * Layout d'arbre d'élimination — centrage récursif depuis le Round 1.
+ *
+ * Règle fondamentale :
+ *   centerY(match) = moyenne des centerY de ses feeders (2 sources)
+ *   ou centerY(feeder) si une seule source (repêchage cross).
+ *
+ * Le Round 1 est la seule référence spatiale ; tous les rounds suivants
+ * en découlent par propagation, sans repositionnement indépendant.
  */
+
+/** Espacement fixe entre cartes — jamais réduit pour les grands brackets. */
+const CARD_H = 176;
+const ROW_GAP = 40;
+const COL_W = 384;
+const COL_PAD_X = 6;
+const ROUND_HEADER_H = 38;
+const TREE_PAD_TOP = 16;
+const TREE_PAD_BOTTOM = 24;
+const CONN_INSET = 12;
+
 export function computeBracketLayoutMetrics(rounds) {
   const firstCount = Math.max(1, rounds[0]?.length || 1);
+  const slotPitch = CARD_H + ROW_GAP;
 
-  // Hauteur réelle d'une carte (badges + scores + bouton Valider)
-  const cardH = 176;
-  const rowGap = Math.max(32, Math.min(52, Math.round(260 / Math.sqrt(firstCount))));
-  const slotPitch = cardH + rowGap;
-  const colW = 384;
-  const colPadX = 6;
-  const roundHeaderH = 38;
-  const treePadBottom = 28;
-  const connInset = 12;
+  // hauteur = padding_haut + n×(carte+gap) + padding_bas
+  const treeBodyHeight = TREE_PAD_TOP + firstCount * slotPitch + TREE_PAD_BOTTOM;
 
   return {
-    cardH,
-    rowGap,
+    cardH: CARD_H,
+    rowGap: ROW_GAP,
     slotPitch,
-    colW,
-    colPadX,
-    roundHeaderH,
-    treePadBottom,
-    connInset,
+    colW: COL_W,
+    colPadX: COL_PAD_X,
+    roundHeaderH: ROUND_HEADER_H,
+    treePadTop: TREE_PAD_TOP,
+    treePadBottom: TREE_PAD_BOTTOM,
+    treeBodyHeight,
+    connInset: CONN_INSET,
     firstCount,
     roundCount: Math.max(1, rounds.length),
   };
 }
 
-export function layoutBracketPositions(rounds, linkField, metrics) {
-  const { slotPitch, cardH, rowGap } = metrics;
-  const pos = new Map();
+/**
+ * Calcule le centre vertical de chaque match (coordonnée dans le corps de colonne).
+ * @returns Map<matchId, centerY>
+ */
+export function layoutBracketCenters(rounds, linkField, metrics) {
+  const { cardH, slotPitch } = metrics;
+  const centerY = new Map();
 
-  rounds.forEach((roundMatches, colIndex) => {
-    if (colIndex === 0) {
-      roundMatches.forEach((m, i) => pos.set(m.id, i * slotPitch));
-      return;
-    }
+  if (!rounds.length) return centerY;
 
-    const prevRound = rounds[colIndex - 1];
-    roundMatches.forEach((m) => {
-      const feeders = prevRound.filter((pm) => pm[linkField] === m.id);
-      if (feeders.length >= 2) {
-        const centers = feeders.map((f) => pos.get(f.id) + cardH / 2);
-        const avg = centers.reduce((s, c) => s + c, 0) / feeders.length;
-        pos.set(m.id, avg - cardH / 2);
-      } else if (feeders.length === 1) {
-        pos.set(m.id, pos.get(feeders[0].id));
-      } else {
-        const placed = roundMatches.filter((rm) => pos.has(rm.id) && rm.id !== m.id);
-        const y = placed.length
-          ? Math.max(...placed.map((rm) => pos.get(rm.id))) + slotPitch
-          : 0;
-        pos.set(m.id, y);
-      }
-    });
-
-    const sorted = [...roundMatches].sort((a, b) => pos.get(a.id) - pos.get(b.id));
-    for (let i = 1; i < sorted.length; i++) {
-      const minY = pos.get(sorted[i - 1].id) + cardH + rowGap;
-      if (pos.get(sorted[i].id) < minY) pos.set(sorted[i].id, minY);
-    }
+  // Round 1 : espacement uniforme depuis le padding haut (référence absolue)
+  rounds[0].forEach((m, i) => {
+    centerY.set(m.id, metrics.treePadTop + i * slotPitch + cardH / 2);
   });
 
-  return pos;
+  // Rounds suivants : propagation récursive depuis les feeders
+  for (let col = 1; col < rounds.length; col += 1) {
+    const prevRound = rounds[col - 1];
+    for (const m of rounds[col]) {
+      const feeders = prevRound.filter((pm) => pm[linkField] === m.id);
+      if (feeders.length >= 2) {
+        const sum = feeders.reduce((s, f) => s + centerY.get(f.id), 0);
+        centerY.set(m.id, sum / feeders.length);
+      } else if (feeders.length === 1) {
+        centerY.set(m.id, centerY.get(feeders[0].id));
+      } else {
+        // Arbre invalide ou match sans lien — fallback indexé (ne doit pas arriver)
+        const idx = rounds[col].indexOf(m);
+        centerY.set(m.id, metrics.treePadTop + idx * slotPitch + cardH / 2);
+      }
+    }
+  }
+
+  return centerY;
 }
 
-export function columnBodyHeight(roundMatches, positions, metrics) {
-  if (!roundMatches.length) return metrics.cardH + metrics.treePadBottom;
-  const maxBottom = Math.max(...roundMatches.map((m) => positions.get(m.id) + metrics.cardH));
-  return maxBottom + metrics.treePadBottom;
+/** Convertit les centres en positions `top` pour le positionnement absolu. */
+export function centersToTops(centerY, cardH) {
+  const tops = new Map();
+  for (const [id, cy] of centerY) {
+    tops.set(id, cy - cardH / 2);
+  }
+  return tops;
 }
 
-export function matchCenterY(top, metrics) {
-  return metrics.roundHeaderH + top + metrics.cardH / 2;
+export function layoutBracketPositions(rounds, linkField, metrics) {
+  const centers = layoutBracketCenters(rounds, linkField, metrics);
+  return centersToTops(centers, metrics.cardH);
 }
 
-/** Coordonnée X du bord droit utile d'une colonne (carte). */
+/** Coordonnée Y du centre dans le repère SVG (inclut l'en-tête de colonne). */
+export function svgCenterY(bodyCenterY, metrics) {
+  return metrics.roundHeaderH + bodyCenterY;
+}
+
 export function columnCardRightX(colIndex, metrics) {
   return (colIndex + 1) * metrics.colW - metrics.colPadX - metrics.connInset;
 }
 
-/** Coordonnée X du bord gauche utile de la colonne suivante. */
 export function columnCardLeftX(colIndex, metrics) {
   return (colIndex + 1) * metrics.colW + metrics.colPadX + metrics.connInset;
 }
 
-export function connectorPath(colIndex, topFrom, topTo, metrics) {
-  const y1 = matchCenterY(topFrom, metrics);
-  const y2 = matchCenterY(topTo, metrics);
+/**
+ * Connecteur en ⌐ : bord droit source → point intermédiaire → bord gauche destination.
+ * @param bodyCenterFrom centre vertical source dans le corps de colonne
+ * @param bodyCenterTo centre vertical destination dans le corps de colonne
+ */
+export function connectorPathFromCenters(colIndex, bodyCenterFrom, bodyCenterTo, metrics) {
+  const y1 = svgCenterY(bodyCenterFrom, metrics);
+  const y2 = svgCenterY(bodyCenterTo, metrics);
   const x1 = columnCardRightX(colIndex, metrics);
   const x2 = columnCardLeftX(colIndex, metrics);
   const midX = (x1 + x2) / 2;
   return `M${x1} ${y1} H${midX} V${y2} H${x2}`;
 }
 
-/** Détecte les chevauchements verticaux dans une colonne (audit). */
-export function detectColumnOverlaps(roundMatches, positions, metrics) {
+/** @deprecated utiliser connectorPathFromCenters */
+export function connectorPath(colIndex, topFrom, topTo, metrics) {
+  return connectorPathFromCenters(
+    colIndex,
+    topFrom + metrics.cardH / 2,
+    topTo + metrics.cardH / 2,
+    metrics
+  );
+}
+
+/** Vérifie la règle centerY = moyenne des feeders pour chaque match. */
+export function detectCenteringViolations(rounds, linkField, centers) {
+  const violations = [];
+  for (let col = 1; col < rounds.length; col += 1) {
+    const prevRound = rounds[col - 1];
+    for (const m of rounds[col]) {
+      const feeders = prevRound.filter((pm) => pm[linkField] === m.id);
+      if (feeders.length < 2) continue;
+      const expected =
+        feeders.reduce((s, f) => s + centers.get(f.id), 0) / feeders.length;
+      const actual = centers.get(m.id);
+      if (Math.abs(actual - expected) > 0.5) {
+        violations.push({ matchId: m.id, expected, actual, col });
+      }
+    }
+  }
+  return violations;
+}
+
+export function detectColumnOverlaps(roundMatches, tops, metrics) {
   const overlaps = [];
-  const sorted = [...roundMatches].sort((a, b) => positions.get(a.id) - positions.get(b.id));
+  const sorted = [...roundMatches].sort((a, b) => tops.get(a.id) - tops.get(b.id));
   for (let i = 1; i < sorted.length; i++) {
     const prev = sorted[i - 1];
     const curr = sorted[i];
-    const gap = positions.get(curr.id) - (positions.get(prev.id) + metrics.cardH);
-    if (gap < metrics.rowGap - 1) {
+    const gap = tops.get(curr.id) - (tops.get(prev.id) + metrics.cardH);
+    if (gap < -0.5) {
       overlaps.push({ prev: prev.id, curr: curr.id, gap });
     }
   }
