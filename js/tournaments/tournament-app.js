@@ -28,7 +28,7 @@ import {
   exportBracketPng,
   renderSwissView,
 } from './render.js';
-import { renderDoubleEliminationView } from './render-double-elim.js?v=20260624d';
+import { renderDoubleEliminationView } from './render-double-elim.js?v=20260624e';
 
 export function initTournamentsAdmin({ root, getPin, showStatus }) {
   let view = 'list';
