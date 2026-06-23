@@ -1,5 +1,5 @@
 import { escapeHtml, renderBracketTree, renderMatchCard } from './render.js';
-import { computeDoubleElimPlayOrder } from './double-elim.js';
+import { buildDoubleElimLayoutIndex, computeDoubleElimPlayOrder } from './double-elim.js';
 
 function renderLegend() {
   return `
@@ -32,54 +32,65 @@ function renderGrandFinal(tournament, grandFinal, playOrder, readonly, editingMa
   const order = playOrder.get(grandFinal.id);
   const editing = editingMatchIds?.has(grandFinal.id) ?? false;
   return `
-    <section class="t-de-zone t-de-zone--gf">
-      <header class="t-de-zone-header">
-        <h3 class="t-subtitle">Grande finale</h3>
-        <p class="t-de-hint">${escapeHtml(grandFinal.deHint || 'Le champion se décide ici.')}</p>
-      </header>
-      <div class="t-de-gf-wrap">
-        ${renderMatchCard(tournament, grandFinal, { readonly, compact: true, matchOrder: order, editing })}
-      </div>
-    </section>`;
+    <aside class="t-de-gf-column" aria-label="Grande finale">
+      <section class="t-de-zone t-de-zone--gf">
+        <header class="t-de-zone-header t-de-zone-header--gf">
+          <h3 class="t-de-gf-title">Grande finale</h3>
+          <p class="t-de-hint">${escapeHtml(grandFinal.deHint || 'Vainqueur WB vs vainqueur repêchage.')}</p>
+        </header>
+        <div class="t-de-gf-wrap">
+          ${renderMatchCard(tournament, grandFinal, { readonly, compact: false, matchOrder: order, editing })}
+        </div>
+      </section>
+    </aside>`;
 }
 
 export function renderDoubleEliminationView(tournament, { readonly = false, editingMatchIds = null } = {}) {
   const playOrder = computeDoubleElimPlayOrder(tournament);
+  const layoutIndex = buildDoubleElimLayoutIndex(tournament);
+  const sortWithinRound = (a, b) =>
+    (layoutIndex.get(a.id) ?? 0) - (layoutIndex.get(b.id) ?? 0);
+
   const wbMatches = tournament.state.matches.filter((m) => m.bracket === 'winner');
   const lbMatches = tournament.state.matches.filter((m) => m.bracket === 'loser');
   const grandFinal = tournament.state.matches.find((m) => m.bracket === 'final');
 
-  const treeOpts = { readonly, compact: true, playOrder, editingMatchIds };
+  const treeOpts = { readonly, compact: true, playOrder, editingMatchIds, sortWithinRound };
 
   let html = renderLegend();
 
-  html += `
-    <section class="t-de-zone t-de-zone--wb">
-      <header class="t-de-zone-header">
-        <h3 class="t-subtitle">Bracket Vainqueurs</h3>
-        <p class="t-de-hint">Winner Bracket — progression vers la finale</p>
-      </header>
-      ${renderBracketTree(tournament, wbMatches, {
-        ...treeOpts,
-        getRoundKey: (m) => m.wbRound ?? m.round,
-      })}
-    </section>`;
+  html += `<div class="t-de-main">`;
 
   html += `
-    <section class="t-de-zone t-de-zone--lb">
-      <header class="t-de-zone-header">
-        <h3 class="t-subtitle">Bracket Repêchage</h3>
-        <p class="t-de-hint">Loser Bracket — 2e chance après une défaite en vainqueurs</p>
-      </header>
-      ${renderBracketTree(tournament, lbMatches, {
-        ...treeOpts,
-        getRoundKey: (m) => m.lbRound ?? m.round,
-      })}
-    </section>`;
+    <div class="t-de-brackets">
+      <section class="t-de-zone t-de-zone--wb">
+        <header class="t-de-zone-header">
+          <h3 class="t-subtitle">Bracket Vainqueurs</h3>
+          <p class="t-de-hint">Winner Bracket — progression vers la finale</p>
+        </header>
+        ${renderBracketTree(tournament, wbMatches, {
+          ...treeOpts,
+          getRoundKey: (m) => m.wbRound ?? m.round,
+        })}
+      </section>
+
+      <section class="t-de-zone t-de-zone--lb">
+        <header class="t-de-zone-header">
+          <h3 class="t-subtitle">Bracket Repêchage</h3>
+          <p class="t-de-hint">Loser Bracket — 2e chance après une défaite en vainqueurs</p>
+        </header>
+        ${renderBracketTree(tournament, lbMatches, {
+          ...treeOpts,
+          getRoundKey: (m) => m.lbRound ?? m.round,
+        })}
+      </section>
+    </div>`;
 
   if (grandFinal) {
     html += renderGrandFinal(tournament, grandFinal, playOrder, readonly, editingMatchIds);
   }
+
+  html += `</div>`;
 
   return `<div class="t-de-view" id="t-bracket-export">${html}</div>`;
 }

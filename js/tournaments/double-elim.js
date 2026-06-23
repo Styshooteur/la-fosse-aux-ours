@@ -191,7 +191,7 @@ export function getDoubleElimRounds(tournament) {
 }
 
 /** Index d'affichage gauche→droite pour trier les matchs d'un même tour. */
-function buildDoubleElimLayoutIndex(tournament) {
+export function buildDoubleElimLayoutIndex(tournament) {
   const index = new Map();
   let i = 0;
   const { wbRounds, lbRounds, grandFinal } = getDoubleElimRounds(tournament);

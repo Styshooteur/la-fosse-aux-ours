@@ -114,16 +114,18 @@ export function renderMatchCard(tournament, match, options = {}) {
         ? '<div class="t-match-scores t-match-scores--readonly"><span class="t-match-score t-match-score--bye">Exempt</span></div>'
         : `<div class="t-match-scores t-match-scores--readonly"><span class="t-match-score t-match-score--wait">${waitingA || waitingB ? '…' : '—'}</span></div>`;
 
+  const validateLabel = compact ? 'Valider' : 'Valider le résultat';
+
   let actions = '';
   if (!readonly && hasBothParticipants) {
     if (editing) {
       actions = `
-        <button type="button" class="t-btn t-btn--primary t-btn-validate" data-match-id="${match.id}">Valider le résultat</button>
+        <button type="button" class="t-btn t-btn--primary t-btn-validate" data-match-id="${match.id}">${validateLabel}</button>
         <button type="button" class="t-btn t-btn--ghost t-btn-cancel-edit" data-match-id="${match.id}">Annuler</button>`;
     } else if (completed) {
       actions = `<button type="button" class="t-btn t-btn--ghost t-btn-edit" data-match-id="${match.id}">Éditer</button>`;
     } else if (avail === 'playable') {
-      actions = `<button type="button" class="t-btn t-btn--primary t-btn-validate" data-match-id="${match.id}">Valider le résultat</button>`;
+      actions = `<button type="button" class="t-btn t-btn--primary t-btn-validate" data-match-id="${match.id}">${validateLabel}</button>`;
     }
   }
 
@@ -219,18 +221,24 @@ export function renderBracketTree(tournament, matches, options = {}) {
     getRoundKey = (m) => m.round,
     linkField = 'nextMatchId',
     editingMatchIds = null,
+    sortWithinRound = null,
   } = options;
 
   if (!matches.length) return '<p class="t-empty">Aucun match.</p>';
 
-  const unitPx = compact ? 114 : 152;
-  const colW = compact ? 204 : 272;
-  const cardH = compact ? 88 : 112;
-  const connY = compact ? 44 : 56;
+  const unitPx = compact ? 132 : 152;
+  const colW = compact ? 252 : 272;
+  const cardH = compact ? 108 : 112;
+  const connY = compact ? 54 : 56;
+
+  const sortRoundMatches = (a, b) => {
+    if (sortWithinRound) return sortWithinRound(a, b);
+    return a.id.localeCompare(b.id);
+  };
 
   const roundKeys = [...new Set(matches.map(getRoundKey))].sort((a, b) => a - b);
   const rounds = roundKeys.map((key) =>
-    matches.filter((m) => getRoundKey(m) === key).sort((a, b) => a.id.localeCompare(b.id))
+    matches.filter((m) => getRoundKey(m) === key).sort(sortRoundMatches)
   );
 
   const firstCount = rounds[0]?.length || 1;
@@ -278,7 +286,7 @@ export function renderBracketTree(tournament, matches, options = {}) {
   const totalH = colHeight + headerOffset + 20;
 
   return `
-    <div class="t-bracket-wrap ${compact ? 't-bracket-wrap--compact' : ''}">
+    <div class="t-bracket-wrap ${compact ? 't-bracket-wrap--compact' : ''}" style="--t-col-w:${colW}px;--t-card-h:${cardH}px;--t-unit:${unitPx}px">
       <svg class="t-bracket-svg" width="${svgW}" height="${totalH}" viewBox="0 0 ${svgW} ${totalH}" aria-hidden="true">${svgLines}</svg>
       <div class="t-bracket-flex" style="min-height:${totalH}px;width:${svgW}px">${colHtml}</div>
     </div>`;
