@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=MedievalSharp&family=UnifrakturMaguntia&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=20260622a">
+  <link rel="stylesheet" href="css/style.css?v=20260622c">
   <link rel="stylesheet" href="css/admin.css?v=20260622a">
 </head>
 <body>
@@ -108,7 +108,10 @@
           <h2>Événements en cours</h2>
           <p class="live-connection-status hidden" id="live-connection-status" role="status"></p>
         </div>
-        <button type="button" class="btn-refresh" id="live-events-refresh" aria-label="Actualiser les événements">
+        <button type="button" class="btn-refresh btn-refresh--events" id="live-events-refresh" title="Actualiser les événements en cours">
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+            <path fill="currentColor" d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08a5.99 5.99 0 0 1-5.65 4c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
+          </svg>
           Actualiser
         </button>
       </div>
@@ -135,7 +138,7 @@
     </div>
   </div>
 
-  <script type="module" src="js/app.js?v=20260622a"></script>
+  <script type="module" src="js/app.js?v=20260622c"></script>
   <script>
     window.addEventListener('error', (event) => {
       const loading = document.getElementById('loading');

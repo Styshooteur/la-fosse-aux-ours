@@ -1,6 +1,6 @@
 import { CONFIG } from './config.js?v=20260620f';
 import { fetchLeaderboard, fetchFighterCards, gradeToClass } from './sheets.js?v=20260620f';
-import { initLiveEvents, teardownLiveEvents } from './events.js?v=20260622b';
+import { initLiveEvents, teardownLiveEvents } from './events.js?v=20260622c';
 
 let fightersData = [];
 let fighterCards = {};

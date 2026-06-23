@@ -874,6 +874,27 @@ body {
   margin-top: 0;
 }
 
+.btn-refresh--events {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--parchment-light);
+  background: var(--ink-soft);
+  border: 1.5px solid var(--ink);
+  padding: 0.45rem 0.9rem;
+  box-shadow: 2px 2px 0 var(--gold-antique);
+}
+
+.btn-refresh--events:hover:not(:disabled) {
+  background: var(--crimson);
+  color: var(--parchment-light);
+}
+
 .live-event-card {
   background: var(--paper-solid-light);
   border: 1px solid rgba(60, 40, 25, 0.15);
