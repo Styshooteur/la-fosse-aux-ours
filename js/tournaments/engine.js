@@ -272,6 +272,82 @@ export function refreshDerivedState(tournament) {
   return tournament;
 }
 
+function applyFormatCascadeOnEdit(tournament, match) {
+  if (match.swissRound) {
+    const maxRound = match.swissRound;
+    tournament.state.matches = tournament.state.matches.filter(
+      (m) => !m.swissRound || m.swissRound <= maxRound
+    );
+    tournament.settings.swissCurrentRound = maxRound;
+    tournament.state.currentRound = maxRound;
+  }
+
+  if (match.groupId && tournament.state.knockoutGenerated) {
+    tournament.state.matches = tournament.state.matches.filter((m) => m.groupId);
+    tournament.state.knockoutGenerated = false;
+    tournament.state.knockout = null;
+    tournament.state.phase = 'groups';
+  }
+}
+
+function collectDownstreamBracketMatches(tournament, matchId, visited = new Set()) {
+  const found = [];
+  if (!matchId || visited.has(matchId)) return found;
+  visited.add(matchId);
+
+  const match = findMatch(tournament, matchId);
+  if (!match) return found;
+
+  for (const nextId of [match.nextMatchId, match.loserNextMatchId].filter(Boolean)) {
+    const next = findMatch(tournament, nextId);
+    if (next) {
+      found.push(next);
+      found.push(...collectDownstreamBracketMatches(tournament, nextId, visited));
+    }
+  }
+  return found;
+}
+
+export function previewEditImpact(tournament, matchId, scoreA, scoreB, drawWinnerId = null) {
+  const match = findMatch(tournament, matchId);
+  if (!match) return { resetCount: 0, matches: [], winnerChanged: false };
+
+  const downstream = collectDownstreamBracketMatches(tournament, matchId);
+  const matches = [...downstream];
+
+  if (match.swissRound) {
+    for (const m of tournament.state.matches) {
+      if (m.swissRound > match.swissRound) matches.push(m);
+    }
+  }
+
+  if (match.groupId && tournament.state.knockoutGenerated) {
+    for (const m of tournament.state.matches) {
+      if (!m.groupId && (m.knockout || m.bracket)) matches.push(m);
+    }
+  }
+
+  const unique = [...new Map(matches.map((m) => [m.id, m])).values()];
+  const completed = unique.filter((m) => m.status === 'completed');
+  const newWinner =
+    match.participantAId && match.participantBId
+      ? determineWinner(match, scoreA, scoreB, drawWinnerId)
+      : null;
+  const winnerChanged = Boolean(
+    match.status === 'completed' && match.winnerId && newWinner && match.winnerId !== newWinner
+  );
+
+  return {
+    resetCount: completed.length,
+    matches: completed,
+    winnerChanged,
+    removesKnockout: Boolean(match.groupId && tournament.state.knockoutGenerated),
+    removesSwissRounds: match.swissRound
+      ? tournament.state.matches.filter((m) => m.swissRound > match.swissRound).length
+      : 0,
+  };
+}
+
 export function validateMatchResult(tournament, matchId, scoreA, scoreB, drawWinnerId = null) {
   const match = findMatch(tournament, matchId);
   if (!match) throw new Error('Match introuvable.');
@@ -281,6 +357,11 @@ export function validateMatchResult(tournament, matchId, scoreA, scoreB, drawWin
   }
   if (scoreA < 0 || scoreB < 0) throw new Error('Scores invalides.');
   if (Number.isNaN(scoreA) || Number.isNaN(scoreB)) throw new Error('Scores invalides.');
+
+  const wasCompleted = match.status === 'completed';
+  if (wasCompleted) {
+    applyFormatCascadeOnEdit(tournament, match);
+  }
 
   clearDownstream(tournament, matchId);
 

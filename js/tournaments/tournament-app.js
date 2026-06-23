@@ -3,7 +3,7 @@ import { generateId, formatDate, nowIso } from './utils.js';
 import {
   createTournament,
   validateMatchResult,
-  editMatchResult,
+  previewEditImpact,
   declareForfeit,
   renameParticipant,
   generateNextSwissRound,
@@ -28,13 +28,14 @@ import {
   exportBracketPng,
   renderSwissView,
 } from './render.js';
-import { renderDoubleEliminationView } from './render-double-elim.js?v=20260623a';
+import { renderDoubleEliminationView } from './render-double-elim.js?v=20260624a';
 
 export function initTournamentsAdmin({ root, getPin, showStatus }) {
   let view = 'list';
   let tournaments = [];
   let current = null;
   let saveTimer = null;
+  const editingMatchIds = new Set();
 
   root.innerHTML = `
     <div class="tournament-app" id="tournament-app">
@@ -289,14 +290,16 @@ export function initTournamentsAdmin({ root, getPin, showStatus }) {
     refreshDerivedState(current);
     const t = current;
 
+    const cardOpts = { editingMatchIds };
+
     let body = '';
     if (t.format === FORMATS.SINGLE_ELIMINATION) {
-      body = renderEliminationBracket(t);
+      body = renderEliminationBracket(t, null, cardOpts);
     } else if (t.format === FORMATS.DOUBLE_ELIMINATION) {
-      body = renderDoubleEliminationView(t);
+      body = renderDoubleEliminationView(t, cardOpts);
     } else if (t.format === FORMATS.ROUND_ROBIN) {
       body = `
-        <div class="t-match-list">${t.state.matches.map((m) => renderMatchCard(t, m)).join('')}</div>
+        <div class="t-match-list">${t.state.matches.map((m) => renderMatchCard(t, m, { ...cardOpts, editing: editingMatchIds.has(m.id) })).join('')}</div>
         <h3 class="t-subtitle">Classement</h3>
         ${renderStandingsTable(t.state.standings)}`;
     } else if (t.format === FORMATS.GROUP_STAGE) {
@@ -307,17 +310,17 @@ export function initTournamentsAdmin({ root, getPin, showStatus }) {
           return `
             <section class="t-group">
               <h3 class="t-subtitle">${escapeHtml(g.name)}</h3>
-              <div class="t-match-list">${groupMatches.map((m) => renderMatchCard(t, m)).join('')}</div>
+              <div class="t-match-list">${groupMatches.map((m) => renderMatchCard(t, m, { ...cardOpts, editing: editingMatchIds.has(m.id) })).join('')}</div>
               ${renderStandingsTable(standings)}
             </section>`;
         })
         .join('');
       const knockout = t.state.phase === 'knockout'
-        ? `<h3 class="t-subtitle">Phase éliminatoire</h3>${renderEliminationBracket(t, null, { knockoutOnly: true })}`
+        ? `<h3 class="t-subtitle">Phase éliminatoire</h3>${renderEliminationBracket(t, null, { knockoutOnly: true, ...cardOpts })}`
         : '';
       body = groupsHtml + knockout;
     } else if (t.format === FORMATS.SWISS) {
-      body = renderSwissView(t, { canAdvance: swissCanAdvance(t) });
+      body = renderSwissView(t, { canAdvance: swissCanAdvance(t), ...cardOpts });
     }
 
     const participantsHtml = t.participants
@@ -366,11 +369,21 @@ export function initTournamentsAdmin({ root, getPin, showStatus }) {
     });
 
     $detail.querySelectorAll('.t-btn-validate').forEach((btn) => {
-      btn.addEventListener('click', () => handleMatchAction(btn.dataset.matchId, false));
+      btn.addEventListener('click', () => handleMatchValidate(btn.dataset.matchId));
     });
 
     $detail.querySelectorAll('.t-btn-edit').forEach((btn) => {
-      btn.addEventListener('click', () => handleMatchAction(btn.dataset.matchId, true));
+      btn.addEventListener('click', () => {
+        editingMatchIds.add(btn.dataset.matchId);
+        renderDetail();
+      });
+    });
+
+    $detail.querySelectorAll('.t-btn-cancel-edit').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        editingMatchIds.delete(btn.dataset.matchId);
+        renderDetail();
+      });
     });
 
     $detail.querySelectorAll('.t-rename-input').forEach((input) => {
@@ -407,20 +420,41 @@ export function initTournamentsAdmin({ root, getPin, showStatus }) {
     }
   }
 
-  async function handleMatchAction(matchId, isEdit) {
+  async function handleMatchValidate(matchId) {
     const card = $detail.querySelector(`.t-match[data-match-id="${matchId}"]`);
+    if (!card) return;
+
     const inputA = card.querySelector('.t-score-input[data-side="A"]');
     const inputB = card.querySelector('.t-score-input[data-side="B"]');
-    const scoreA = Number(inputA?.value ?? 0);
-    const scoreB = Number(inputB?.value ?? 0);
-
-    if (isEdit && !confirm('Modifier ce résultat recalculera les rounds suivants. Continuer ?')) {
+    if (!inputA || !inputB) {
+      showStatus('Ouvrez l\'édition du match pour modifier les scores.', true);
       return;
     }
 
+    const scoreA = Number(inputA.value);
+    const scoreB = Number(inputB.value);
+
     try {
-      if (isEdit) editMatchResult(current, matchId, scoreA, scoreB);
-      else validateMatchResult(current, matchId, scoreA, scoreB);
+      const impact = previewEditImpact(current, matchId, scoreA, scoreB);
+      const warnings = [];
+      if (impact.resetCount > 0) {
+        warnings.push(`${impact.resetCount} match(s) terminé(s) en aval seront réinitialisés`);
+      }
+      if (impact.removesSwissRounds > 0) {
+        warnings.push(`${impact.removesSwissRounds} match(s) des rondes suivantes (système suisse) seront supprimés`);
+      }
+      if (impact.removesKnockout) {
+        warnings.push('la phase éliminatoire sera réinitialisée');
+      }
+      if (warnings.length) {
+        const ok = confirm(
+          `Modifier ce résultat entraînera un recalcul en cascade :\n\n· ${warnings.join('\n· ')}\n\nContinuer ?`
+        );
+        if (!ok) return;
+      }
+
+      validateMatchResult(current, matchId, scoreA, scoreB);
+      editingMatchIds.delete(matchId);
       await persistTournament(current, getPin());
       renderDetail();
       showStatus('Résultat enregistré.');

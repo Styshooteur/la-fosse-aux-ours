@@ -39,6 +39,24 @@ export function participantName(tournament, id) {
   return p.name;
 }
 
+/** Nom court pour les cartes de match (premier mot uniquement). */
+export function displayParticipantName(tournament, id) {
+  if (!id) return 'En attente';
+  const full = participantName(tournament, id);
+  if (!full || full === '—') return 'En attente';
+  if (full.endsWith(' (forfait)')) {
+    const base = full.slice(0, -' (forfait)'.length);
+    return `${truncateToFirstWord(base)} (forfait)`;
+  }
+  return truncateToFirstWord(full);
+}
+
+export function truncateToFirstWord(name) {
+  const trimmed = (name || '').trim();
+  if (!trimmed) return '—';
+  return trimmed.split(/\s+/)[0];
+}
+
 export function findMatch(tournament, matchId) {
   return tournament.state.matches.find((m) => m.id === matchId) || null;
 }

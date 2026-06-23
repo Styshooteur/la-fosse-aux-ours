@@ -1,4 +1,4 @@
-import { participantById, participantName } from './utils.js';
+import { participantById, participantName, displayParticipantName } from './utils.js';
 import { computeStandings } from './standings.js';
 import { STATUS } from './types.js';
 
@@ -78,6 +78,7 @@ export function renderMatchCard(tournament, match, options = {}) {
     compact = false,
     matchOrder = null,
     availability = null,
+    editing = false,
   } = options;
 
   const avail = availability ?? getMatchAvailability(tournament, match);
@@ -91,63 +92,55 @@ export function renderMatchCard(tournament, match, options = {}) {
   const isBye =
     (pA?.isBye && match.participantBId && !pB?.isBye) ||
     (pB?.isBye && match.participantAId && !pA?.isBye);
-  const canPlay =
-    avail === 'playable' &&
-    match.participantAId &&
-    match.participantBId &&
-    match.status !== 'bye' &&
-    !isBye;
 
-  const nameA = waitingA ? 'En attente' : participantName(tournament, match.participantAId);
-  const nameB = waitingB ? 'En attente' : participantName(tournament, match.participantBId);
-
-  const scoreBlock = readonly
-    ? completed
-      ? `<span class="t-match-score">${match.scoreA ?? '—'} — ${match.scoreB ?? '—'}</span>`
-      : isBye
-        ? '<span class="t-match-score t-match-score--bye">Exempt — passage automatique</span>'
-        : `<span class="t-match-score t-match-score--wait">${waitingA || waitingB ? 'En attente des qualifiés' : '—'}</span>`
-    : canPlay
-    ? `<div class="t-match-scores">
-        <input type="number" min="0" class="t-score-input" data-side="A" value="${match.scoreA ?? ''}" placeholder="0" />
-        <span>vs</span>
-        <input type="number" min="0" class="t-score-input" data-side="B" value="${match.scoreB ?? ''}" placeholder="0" />
-      </div>`
-    : completed
-      ? `<span class="t-match-score">${match.scoreA ?? '—'} — ${match.scoreB ?? '—'}</span>`
-      : isBye
-        ? '<span class="t-match-score t-match-score--bye">Exempt — passage automatique</span>'
-        : `<span class="t-match-score t-match-score--wait">${waitingA || waitingB ? 'En attente des qualifiés' : '—'}</span>`;
+  const nameA = waitingA ? 'En attente' : displayParticipantName(tournament, match.participantAId);
+  const nameB = waitingB ? 'En attente' : displayParticipantName(tournament, match.participantBId);
 
   const hasBothParticipants =
     match.participantAId && match.participantBId && match.status !== 'bye' && !isBye;
 
+  const showScoreInputs =
+    !readonly && hasBothParticipants && (avail === 'playable' || editing);
+
+  const scoreCenter = showScoreInputs
+    ? `<div class="t-match-scores">
+        <input type="number" min="0" class="t-score-input" data-side="A" value="${match.scoreA ?? ''}" placeholder="0" aria-label="Score ${escapeHtml(nameA)}" />
+        <span class="t-match-score-sep" aria-hidden="true">—</span>
+        <input type="number" min="0" class="t-score-input" data-side="B" value="${match.scoreB ?? ''}" placeholder="0" aria-label="Score ${escapeHtml(nameB)}" />
+      </div>`
+    : completed
+      ? `<div class="t-match-scores t-match-scores--readonly"><span class="t-match-score-val">${match.scoreA ?? '—'}</span><span class="t-match-score-sep">—</span><span class="t-match-score-val">${match.scoreB ?? '—'}</span></div>`
+      : isBye
+        ? '<div class="t-match-scores t-match-scores--readonly"><span class="t-match-score t-match-score--bye">Exempt</span></div>'
+        : `<div class="t-match-scores t-match-scores--readonly"><span class="t-match-score t-match-score--wait">${waitingA || waitingB ? '…' : '—'}</span></div>`;
+
   let actions = '';
   if (!readonly && hasBothParticipants) {
-    actions = completed
-      ? `<button type="button" class="t-btn t-btn--ghost t-btn-edit" data-match-id="${match.id}">Éditer</button>`
-      : avail === 'playable'
-        ? `<button type="button" class="t-btn t-btn--primary t-btn-validate" data-match-id="${match.id}">Valider le résultat</button>`
-        : '';
+    if (editing) {
+      actions = `
+        <button type="button" class="t-btn t-btn--primary t-btn-validate" data-match-id="${match.id}">Valider le résultat</button>
+        <button type="button" class="t-btn t-btn--ghost t-btn-cancel-edit" data-match-id="${match.id}">Annuler</button>`;
+    } else if (completed) {
+      actions = `<button type="button" class="t-btn t-btn--ghost t-btn-edit" data-match-id="${match.id}">Éditer</button>`;
+    } else if (avail === 'playable') {
+      actions = `<button type="button" class="t-btn t-btn--primary t-btn-validate" data-match-id="${match.id}">Valider le résultat</button>`;
+    }
   }
 
   return `
-    <article class="t-match t-match--${avail} ${compact ? 't-match--compact' : ''} ${isBye ? 't-match--bye' : ''}" data-match-id="${match.id}" data-availability="${avail}">
-      ${matchOrder != null ? `<span class="t-match-order" title="Ordre de jeu">M${matchOrder}</span>` : ''}
-      <span class="t-match-state" aria-label="${AVAILABILITY_LABELS[avail]}">${AVAILABILITY_LABELS[avail]}</span>
-      <header class="t-match-header">
-        <span>${escapeHtml(match.roundName || `Tour ${match.round}`)}</span>
-        ${match.bracket ? `<span class="t-match-bracket">${escapeHtml(bracketLabel(match.bracket))}</span>` : ''}
-      </header>
+    <article class="t-match t-match--${avail} ${compact ? 't-match--compact' : ''} ${editing ? 't-match--editing' : ''} ${isBye ? 't-match--bye' : ''}" data-match-id="${match.id}" data-availability="${avail}"${matchOrder != null ? ` title="Ordre de jeu M${matchOrder}"` : ''}>
+      <span class="t-match-state">${AVAILABILITY_LABELS[avail]}</span>
       <div class="t-match-body">
-        <div class="t-match-player ${match.winnerId === match.participantAId ? 't-match-player--win' : ''} ${waitingA ? 't-match-player--wait' : ''}">
-          <span class="t-color-dot" style="background:${waitingA ? '#ccc' : colorA}"></span>
-          <span class="t-player-name">${crownIfWinner(match, match.participantAId, completed)}${escapeHtml(nameA)}</span>
-        </div>
-        ${scoreBlock}
-        <div class="t-match-player ${match.winnerId === match.participantBId ? 't-match-player--win' : ''} ${waitingB ? 't-match-player--wait' : ''}">
-          <span class="t-color-dot" style="background:${waitingB ? '#ccc' : colorB}"></span>
-          <span class="t-player-name">${crownIfWinner(match, match.participantBId, completed)}${escapeHtml(nameB)}</span>
+        <div class="t-match-row">
+          <div class="t-match-player t-match-player--a ${match.winnerId === match.participantAId ? 't-match-player--win' : ''} ${waitingA ? 't-match-player--wait' : ''}" title="${escapeHtml(participantName(tournament, match.participantAId))}">
+            <span class="t-color-dot" style="background:${waitingA ? '#ccc' : colorA}"></span>
+            <span class="t-player-name">${crownIfWinner(match, match.participantAId, completed)}${escapeHtml(nameA)}</span>
+          </div>
+          ${scoreCenter}
+          <div class="t-match-player t-match-player--b ${match.winnerId === match.participantBId ? 't-match-player--win' : ''} ${waitingB ? 't-match-player--wait' : ''}" title="${escapeHtml(participantName(tournament, match.participantBId))}">
+            <span class="t-player-name">${crownIfWinner(match, match.participantBId, completed)}${escapeHtml(nameB)}</span>
+            <span class="t-color-dot" style="background:${waitingB ? '#ccc' : colorB}"></span>
+          </div>
         </div>
       </div>
       ${actions ? `<footer class="t-match-actions">${actions}</footer>` : ''}
@@ -210,6 +203,14 @@ function matchTopPx(roundIndex, matchIndex, unitPx) {
  * Arbre SVG classique (colonnes par tour + connecteurs).
  * compact ≈ 25 % plus petit pour la double élimination.
  */
+function matchCardOpts(match, options = {}) {
+  const { editingMatchIds, ...rest } = options;
+  return {
+    ...rest,
+    editing: rest.editing ?? editingMatchIds?.has(match.id) ?? false,
+  };
+}
+
 export function renderBracketTree(tournament, matches, options = {}) {
   const {
     readonly = false,
@@ -217,14 +218,15 @@ export function renderBracketTree(tournament, matches, options = {}) {
     playOrder = null,
     getRoundKey = (m) => m.round,
     linkField = 'nextMatchId',
+    editingMatchIds = null,
   } = options;
 
   if (!matches.length) return '<p class="t-empty">Aucun match.</p>';
 
   const unitPx = compact ? 114 : 152;
   const colW = compact ? 204 : 272;
-  const cardH = compact ? 100 : 132;
-  const connY = compact ? 50 : 68;
+  const cardH = compact ? 88 : 112;
+  const connY = compact ? 44 : 56;
 
   const roundKeys = [...new Set(matches.map(getRoundKey))].sort((a, b) => a - b);
   const rounds = roundKeys.map((key) =>
@@ -260,7 +262,7 @@ export function renderBracketTree(tournament, matches, options = {}) {
           }
 
           const order = playOrder?.get(match.id);
-          return `<div class="t-bracket-cell" style="margin-top:${Math.max(0, marginTop)}px">${renderMatchCard(tournament, match, { readonly, compact, matchOrder: order })}</div>`;
+          return `<div class="t-bracket-cell" style="margin-top:${Math.max(0, marginTop)}px">${renderMatchCard(tournament, match, matchCardOpts(match, { readonly, compact, matchOrder: order, editingMatchIds }))}</div>`;
         })
         .join('');
 
@@ -283,7 +285,8 @@ export function renderBracketTree(tournament, matches, options = {}) {
 }
 
 export function renderEliminationBracket(tournament, bracketFilter = null, options = {}) {
-  const { knockoutOnly = false, excludeLastLbRound = false, readonly = false } = options;
+  const { knockoutOnly = false, excludeLastLbRound = false, readonly = false, editingMatchIds = null } =
+    options;
   let matches = filterBracketMatches(tournament, bracketFilter, { knockoutOnly });
 
   if (excludeLastLbRound && bracketFilter === 'loser' && matches.length) {
@@ -291,7 +294,7 @@ export function renderEliminationBracket(tournament, bracketFilter = null, optio
     matches = matches.filter((m) => m.round < maxRound);
   }
 
-  return renderBracketTree(tournament, matches, { readonly, getRoundKey: (m) => m.round });
+  return renderBracketTree(tournament, matches, { readonly, editingMatchIds, getRoundKey: (m) => m.round });
 }
 
 export function renderDoubleEliminationFinale(tournament) {
@@ -329,7 +332,7 @@ function getSwissRoundNumbers(tournament) {
   return rounds.length ? rounds : [1];
 }
 
-export function renderSwissView(tournament, { canAdvance = false, readonly = false } = {}) {
+export function renderSwissView(tournament, { canAdvance = false, readonly = false, editingMatchIds = null } = {}) {
   const totalRounds = tournament.settings.swissRounds || 1;
   const roundNumbers = getSwissRoundNumbers(tournament);
   const showNextButton =
@@ -344,7 +347,7 @@ export function renderSwissView(tournament, { canAdvance = false, readonly = fal
       return `
         <section class="t-swiss-round">
           <p class="t-swiss-round-label">Ronde ${roundNum} / ${totalRounds}</p>
-          <div class="t-match-list">${roundMatches.map((m) => renderMatchCard(tournament, m, { readonly })).join('')}</div>
+          <div class="t-match-list">${roundMatches.map((m) => renderMatchCard(tournament, m, matchCardOpts(m, { readonly, editingMatchIds }))).join('')}</div>
           <h3 class="t-subtitle">Classement</h3>
           ${renderStandingsTable(standings, { showBuchholz: true })}
         </section>`;

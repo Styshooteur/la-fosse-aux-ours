@@ -28,8 +28,9 @@ function renderLegend() {
     </div>`;
 }
 
-function renderGrandFinal(tournament, grandFinal, playOrder, readonly) {
+function renderGrandFinal(tournament, grandFinal, playOrder, readonly, editingMatchIds) {
   const order = playOrder.get(grandFinal.id);
+  const editing = editingMatchIds?.has(grandFinal.id) ?? false;
   return `
     <section class="t-de-zone t-de-zone--gf">
       <header class="t-de-zone-header">
@@ -37,16 +38,18 @@ function renderGrandFinal(tournament, grandFinal, playOrder, readonly) {
         <p class="t-de-hint">${escapeHtml(grandFinal.deHint || 'Le champion se décide ici.')}</p>
       </header>
       <div class="t-de-gf-wrap">
-        ${renderMatchCard(tournament, grandFinal, { readonly, compact: true, matchOrder: order })}
+        ${renderMatchCard(tournament, grandFinal, { readonly, compact: true, matchOrder: order, editing })}
       </div>
     </section>`;
 }
 
-export function renderDoubleEliminationView(tournament, { readonly = false } = {}) {
+export function renderDoubleEliminationView(tournament, { readonly = false, editingMatchIds = null } = {}) {
   const playOrder = computeDoubleElimPlayOrder(tournament);
   const wbMatches = tournament.state.matches.filter((m) => m.bracket === 'winner');
   const lbMatches = tournament.state.matches.filter((m) => m.bracket === 'loser');
   const grandFinal = tournament.state.matches.find((m) => m.bracket === 'final');
+
+  const treeOpts = { readonly, compact: true, playOrder, editingMatchIds };
 
   let html = renderLegend();
 
@@ -57,9 +60,7 @@ export function renderDoubleEliminationView(tournament, { readonly = false } = {
         <p class="t-de-hint">Winner Bracket — progression vers la finale</p>
       </header>
       ${renderBracketTree(tournament, wbMatches, {
-        readonly,
-        compact: true,
-        playOrder,
+        ...treeOpts,
         getRoundKey: (m) => m.wbRound ?? m.round,
       })}
     </section>`;
@@ -71,15 +72,13 @@ export function renderDoubleEliminationView(tournament, { readonly = false } = {
         <p class="t-de-hint">Loser Bracket — 2e chance après une défaite en vainqueurs</p>
       </header>
       ${renderBracketTree(tournament, lbMatches, {
-        readonly,
-        compact: true,
-        playOrder,
+        ...treeOpts,
         getRoundKey: (m) => m.lbRound ?? m.round,
       })}
     </section>`;
 
   if (grandFinal) {
-    html += renderGrandFinal(tournament, grandFinal, playOrder, readonly);
+    html += renderGrandFinal(tournament, grandFinal, playOrder, readonly, editingMatchIds);
   }
 
   return `<div class="t-de-view" id="t-bracket-export">${html}</div>`;
