@@ -1,4 +1,5 @@
 import { verifyPin } from '../_lib/admin.js';
+import { formatBlobError } from '../_lib/blob.js';
 import {
   deleteTournament,
   getTournament,
@@ -51,6 +52,6 @@ export default async function handler(req, res) {
     res.setHeader('Allow', 'GET, POST');
     return res.status(405).json({ error: 'Méthode non autorisée.' });
   } catch (error) {
-    return res.status(500).json({ error: error.message || 'Erreur serveur.' });
+    return res.status(500).json({ error: formatBlobError(error) });
   }
 }

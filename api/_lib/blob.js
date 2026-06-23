@@ -146,3 +146,19 @@ export function blobSetupHint() {
     'Sur vercel.com → projet la-fosse-aux-ours-lvza → Storage → vérifiez que le Blob est bien connecté, puis redéployez.'
   );
 }
+
+/** Message en français pour les erreurs Vercel Blob courantes. */
+export function formatBlobError(error) {
+  const msg = error?.message || String(error || '');
+  if (/suspended/i.test(msg)) {
+    return (
+      'Le stockage Vercel Blob est suspendu sur votre compte. ' +
+      'Allez sur vercel.com → Storage → ouvrez votre Blob store et réactivez-le (ou vérifiez la facturation). ' +
+      'En attendant, vous pouvez utiliser le site en local avec start.bat.'
+    );
+  }
+  if (/not found|does not exist/i.test(msg)) {
+    return blobSetupHint();
+  }
+  return msg || 'Erreur de stockage Vercel Blob.';
+}
