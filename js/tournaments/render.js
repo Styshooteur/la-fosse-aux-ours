@@ -50,7 +50,37 @@ function crownIfWinner(match, participantId, completed) {
   return championCrown(match);
 }
 
-export function renderMatchCard(tournament, match, { readonly = false } = {}) {
+export function getMatchAvailability(tournament, match) {
+  const completed = match.status === 'completed';
+  if (completed) return 'done';
+
+  const waitingA = !match.participantAId;
+  const waitingB = !match.participantBId;
+  const pA = participantById(tournament, match.participantAId);
+  const pB = participantById(tournament, match.participantBId);
+  const isBye =
+    (pA?.isBye && match.participantBId && !pB?.isBye) ||
+    (pB?.isBye && match.participantAId && !pA?.isBye);
+
+  if (waitingA || waitingB || match.status === 'bye' || isBye) return 'waiting';
+  return 'playable';
+}
+
+const AVAILABILITY_LABELS = {
+  waiting: 'En attente',
+  playable: 'Jouable',
+  done: 'Terminé',
+};
+
+export function renderMatchCard(tournament, match, options = {}) {
+  const {
+    readonly = false,
+    compact = false,
+    matchOrder = null,
+    availability = null,
+  } = options;
+
+  const avail = availability ?? getMatchAvailability(tournament, match);
   const pA = participantById(tournament, match.participantAId);
   const pB = participantById(tournament, match.participantBId);
   const colorA = pA?.color || '#8f6118';
@@ -62,6 +92,7 @@ export function renderMatchCard(tournament, match, { readonly = false } = {}) {
     (pA?.isBye && match.participantBId && !pB?.isBye) ||
     (pB?.isBye && match.participantAId && !pA?.isBye);
   const canPlay =
+    avail === 'playable' &&
     match.participantAId &&
     match.participantBId &&
     match.status !== 'bye' &&
@@ -88,15 +119,22 @@ export function renderMatchCard(tournament, match, { readonly = false } = {}) {
         ? '<span class="t-match-score t-match-score--bye">Exempt — passage automatique</span>'
         : `<span class="t-match-score t-match-score--wait">${waitingA || waitingB ? 'En attente des qualifiés' : '—'}</span>`;
 
+  const hasBothParticipants =
+    match.participantAId && match.participantBId && match.status !== 'bye' && !isBye;
+
   let actions = '';
-  if (!readonly && canPlay) {
+  if (!readonly && hasBothParticipants) {
     actions = completed
       ? `<button type="button" class="t-btn t-btn--ghost t-btn-edit" data-match-id="${match.id}">Éditer</button>`
-      : `<button type="button" class="t-btn t-btn--primary t-btn-validate" data-match-id="${match.id}">Valider le résultat</button>`;
+      : avail === 'playable'
+        ? `<button type="button" class="t-btn t-btn--primary t-btn-validate" data-match-id="${match.id}">Valider le résultat</button>`
+        : '';
   }
 
   return `
-    <article class="t-match ${completed ? 't-match--done' : ''} ${isBye ? 't-match--bye' : ''}" data-match-id="${match.id}">
+    <article class="t-match t-match--${avail} ${compact ? 't-match--compact' : ''} ${isBye ? 't-match--bye' : ''}" data-match-id="${match.id}" data-availability="${avail}">
+      ${matchOrder != null ? `<span class="t-match-order" title="Ordre de jeu">M${matchOrder}</span>` : ''}
+      <span class="t-match-state" aria-label="${AVAILABILITY_LABELS[avail]}">${AVAILABILITY_LABELS[avail]}</span>
       <header class="t-match-header">
         <span>${escapeHtml(match.roundName || `Tour ${match.round}`)}</span>
         ${match.bracket ? `<span class="t-match-bracket">${escapeHtml(bracketLabel(match.bracket))}</span>` : ''}
@@ -168,28 +206,34 @@ function matchTopPx(roundIndex, matchIndex, unitPx) {
   return matchIndex * unitPx * mult + ((mult - 1) * unitPx) / 2;
 }
 
-export function renderEliminationBracket(tournament, bracketFilter = null, options = {}) {
-  const { knockoutOnly = false, excludeLastLbRound = false, readonly = false } = options;
-  let matches = filterBracketMatches(tournament, bracketFilter, { knockoutOnly });
-
-  if (excludeLastLbRound && bracketFilter === 'loser' && matches.length) {
-    const maxRound = Math.max(...matches.map((m) => m.round));
-    matches = matches.filter((m) => m.round < maxRound);
-  }
+/**
+ * Arbre SVG classique (colonnes par tour + connecteurs).
+ * compact ≈ 25 % plus petit pour la double élimination.
+ */
+export function renderBracketTree(tournament, matches, options = {}) {
+  const {
+    readonly = false,
+    compact = false,
+    playOrder = null,
+    getRoundKey = (m) => m.round,
+    linkField = 'nextMatchId',
+  } = options;
 
   if (!matches.length) return '<p class="t-empty">Aucun match.</p>';
 
-  const maxRound = Math.max(...matches.map((m) => m.round));
-  const rounds = [];
-  for (let r = 1; r <= maxRound; r += 1) {
-    const rm = matches.filter((m) => m.round === r);
-    if (rm.length) rounds.push(rm);
-  }
+  const unitPx = compact ? 114 : 152;
+  const colW = compact ? 204 : 272;
+  const cardH = compact ? 100 : 132;
+  const connY = compact ? 50 : 68;
 
-  const unitPx = 152;
+  const roundKeys = [...new Set(matches.map(getRoundKey))].sort((a, b) => a - b);
+  const rounds = roundKeys.map((key) =>
+    matches.filter((m) => getRoundKey(m) === key).sort((a, b) => a.id.localeCompare(b.id))
+  );
+
   const firstCount = rounds[0]?.length || 1;
   const colHeight = firstCount * unitPx;
-  const colW = 272;
+  const headerOffset = compact ? 36 : 40;
 
   let svgLines = '';
   const colHtml = rounds
@@ -198,23 +242,25 @@ export function renderEliminationBracket(tournament, bracketFilter = null, optio
         .map((match, rowIndex) => {
           const top = matchTopPx(colIndex, rowIndex, unitPx);
           const prevTop = rowIndex > 0 ? matchTopPx(colIndex, rowIndex - 1, unitPx) : 0;
-          const marginTop = rowIndex === 0 ? top : top - prevTop - 132;
+          const marginTop = rowIndex === 0 ? top : top - prevTop - cardH;
 
-          if (colIndex < rounds.length - 1 && match.nextMatchId) {
+          const nextId = match[linkField];
+          if (colIndex < rounds.length - 1 && nextId) {
             const nextCol = rounds[colIndex + 1];
-            const nextMatch = nextCol.find((m) => m.id === match.nextMatchId);
+            const nextMatch = nextCol.find((m) => m.id === nextId);
             if (nextMatch) {
               const nextRow = nextCol.indexOf(nextMatch);
-              const y1 = top + 68;
-              const y2 = matchTopPx(colIndex + 1, nextRow, unitPx) + 68;
+              const y1 = top + connY;
+              const y2 = matchTopPx(colIndex + 1, nextRow, unitPx) + connY;
               const x1 = colIndex * colW + colW - 12;
               const x2 = (colIndex + 1) * colW + 12;
               const midX = (x1 + x2) / 2;
-              svgLines += `<path d="M${x1} ${y1} H${midX} V${y2} H${x2}" fill="none" stroke="#7a1a1a" stroke-width="2" opacity="0.4"/>`;
+              svgLines += `<path d="M${x1} ${y1} H${midX} V${y2} H${x2}" fill="none" stroke="#7a1a1a" stroke-width="${compact ? 1.5 : 2}" opacity="0.42"/>`;
             }
           }
 
-          return `<div class="t-bracket-cell" style="margin-top:${Math.max(0, marginTop)}px">${renderMatchCard(tournament, match, { readonly })}</div>`;
+          const order = playOrder?.get(match.id);
+          return `<div class="t-bracket-cell" style="margin-top:${Math.max(0, marginTop)}px">${renderMatchCard(tournament, match, { readonly, compact, matchOrder: order })}</div>`;
         })
         .join('');
 
@@ -227,12 +273,25 @@ export function renderEliminationBracket(tournament, bracketFilter = null, optio
     .join('');
 
   const svgW = rounds.length * colW;
+  const totalH = colHeight + headerOffset + 20;
 
   return `
-    <div class="t-bracket-wrap" id="t-bracket-export">
-      <svg class="t-bracket-svg" width="${svgW}" height="${colHeight + 60}" viewBox="0 0 ${svgW} ${colHeight + 60}" aria-hidden="true">${svgLines}</svg>
-      <div class="t-bracket-flex" style="min-height:${colHeight + 60}px;width:${svgW}px">${colHtml}</div>
+    <div class="t-bracket-wrap ${compact ? 't-bracket-wrap--compact' : ''}">
+      <svg class="t-bracket-svg" width="${svgW}" height="${totalH}" viewBox="0 0 ${svgW} ${totalH}" aria-hidden="true">${svgLines}</svg>
+      <div class="t-bracket-flex" style="min-height:${totalH}px;width:${svgW}px">${colHtml}</div>
     </div>`;
+}
+
+export function renderEliminationBracket(tournament, bracketFilter = null, options = {}) {
+  const { knockoutOnly = false, excludeLastLbRound = false, readonly = false } = options;
+  let matches = filterBracketMatches(tournament, bracketFilter, { knockoutOnly });
+
+  if (excludeLastLbRound && bracketFilter === 'loser' && matches.length) {
+    const maxRound = Math.max(...matches.map((m) => m.round));
+    matches = matches.filter((m) => m.round < maxRound);
+  }
+
+  return renderBracketTree(tournament, matches, { readonly, getRoundKey: (m) => m.round });
 }
 
 export function renderDoubleEliminationFinale(tournament) {

@@ -190,6 +190,80 @@ export function getDoubleElimRounds(tournament) {
   return { wbRounds: sortKeys(wb), lbRounds: sortKeys(lb), grandFinal };
 }
 
+/** Index d'affichage gauche→droite pour trier les matchs d'un même tour. */
+function buildDoubleElimLayoutIndex(tournament) {
+  const index = new Map();
+  let i = 0;
+  const { wbRounds, lbRounds, grandFinal } = getDoubleElimRounds(tournament);
+  for (const round of wbRounds) {
+    for (const m of round.matches) {
+      index.set(m.id, i++);
+    }
+  }
+  for (const round of lbRounds) {
+    for (const m of round.matches) {
+      index.set(m.id, i++);
+    }
+  }
+  if (grandFinal) index.set(grandFinal.id, i);
+  return index;
+}
+
+/**
+ * Numérotation M1, M2… selon l'ordre de jeu réel (dépendances WB/LB).
+ * WB R1 d'abord, puis LB dépendant, alternance logique par tour.
+ */
+export function computeDoubleElimPlayOrder(tournament) {
+  const deMatches = tournament.state.matches.filter((m) =>
+    ['winner', 'loser', 'final'].includes(m.bracket)
+  );
+  const feedersOf = new Map(deMatches.map((m) => [m.id, []]));
+
+  for (const m of deMatches) {
+    if (m.nextMatchId && feedersOf.has(m.nextMatchId)) {
+      feedersOf.get(m.nextMatchId).push(m);
+    }
+    if (m.loserNextMatchId && feedersOf.has(m.loserNextMatchId)) {
+      feedersOf.get(m.loserNextMatchId).push(m);
+    }
+  }
+
+  const layoutIndex = buildDoubleElimLayoutIndex(tournament);
+  const bracketRank = { loser: 0, winner: 1, final: 2 };
+  const roundOf = (m) => m.wbRound ?? m.lbRound ?? m.round ?? 99;
+
+  const sortReady = (a, b) => {
+    const ra = roundOf(a);
+    const rb = roundOf(b);
+    if (ra !== rb) return ra - rb;
+    const ba = bracketRank[a.bracket] ?? 1;
+    const bb = bracketRank[b.bracket] ?? 1;
+    if (ba !== bb) return ba - bb;
+    return (layoutIndex.get(a.id) ?? 0) - (layoutIndex.get(b.id) ?? 0);
+  };
+
+  const remaining = new Set(deMatches.map((m) => m.id));
+  const numbered = new Map();
+  let num = 1;
+
+  while (remaining.size) {
+    const ready = deMatches
+      .filter(
+        (m) =>
+          remaining.has(m.id) &&
+          feedersOf.get(m.id).every((f) => !remaining.has(f.id))
+      )
+      .sort(sortReady);
+
+    if (!ready.length) break;
+    const m = ready[0];
+    numbered.set(m.id, num++);
+    remaining.delete(m.id);
+  }
+
+  return numbered;
+}
+
 /** Reconstruit les liens WB/LB pour les tournois existants. */
 export function rebuildDoubleElimLinks(tournament) {
   if (tournament.format !== FORMATS.DOUBLE_ELIMINATION) return;
