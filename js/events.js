@@ -2,7 +2,7 @@ import { renderLiveEventsPage } from './tournaments/render-public.js';
 import { liveTournamentsSignature } from './tournaments/live-sync.js';
 
 /** Intervalle entre actualisations automatiques (onglet visible). */
-const POLL_MS = 60_000;
+const POLL_MS = 120_000;
 /** SSE uniquement en dev local (server.py) — pas de quota Blob/Supabase en boucle. */
 const SSE_ENABLED = ['localhost', '127.0.0.1'].includes(location.hostname);
 
