@@ -1,4 +1,4 @@
-import { fetchLeaderboard, fetchFighterCards, gradeToClass } from './sheets.js?v=20260620f';
+import { fetchLeaderboard, gradeToClass } from './sheets.js?v=20260620f';
 import { openPortraitEditor } from './portrait-editor.js';
 import {
   calculateEloMatch,
@@ -13,6 +13,7 @@ const $ = (id) => document.getElementById(id);
 
 let fighters = [];
 let portraits = {};
+let customPortraits = new Set();
 let selectedWinner = null;
 let tournamentsAdmin = null;
 
@@ -44,13 +45,17 @@ async function verifyPin(pin) {
   return data.valid === true;
 }
 
+async function refreshPortraitsFromServer() {
+  const response = await fetch('/api/fighters', { cache: 'no-store' });
+  if (!response.ok) return;
+  const data = await response.json();
+  portraits = data.fighters || {};
+  customPortraits = new Set(data.customPortraits || []);
+}
 async function loadFighters() {
-  const [leaderboard, cards] = await Promise.all([
-    fetchLeaderboard(),
-    fetchFighterCards(),
-  ]);
+  const [leaderboard] = await Promise.all([fetchLeaderboard()]);
   fighters = leaderboard.fighters;
-  portraits = cards;
+  await refreshPortraitsFromServer();
 }
 
 function renderAdminList() {
@@ -62,6 +67,8 @@ function renderAdminList() {
         ? `<img class="admin-thumb" src="${image}?v=${Date.now()}" alt="" />`
         : '<div class="admin-thumb admin-thumb--empty">Aucun<br>portrait</div>';
 
+      const hasCustom = customPortraits.has(f.combattant);
+
       return `
         <article class="admin-item" data-name="${encodeURIComponent(f.combattant)}">
           ${thumb}
@@ -72,6 +79,11 @@ function renderAdminList() {
           <div class="admin-item-actions">
             <input type="file" accept="image/png,image/jpeg,image/webp,image/gif" class="admin-file" />
             <span class="admin-file-hint">Choisir une photo pour l'ajuster</span>
+            ${
+              hasCustom
+                ? `<button type="button" class="admin-btn-delete" data-action="delete-portrait">Supprimer le portrait</button>`
+                : ''
+            }
           </div>
         </article>`;
     })
@@ -94,6 +106,18 @@ function renderAdminList() {
           showStatus(err.message, true);
         }
       }
+    });
+
+    const deleteBtn = item.querySelector('[data-action="delete-portrait"]');
+    deleteBtn?.addEventListener('click', async () => {
+      if (
+        !confirm(
+          `Supprimer le portrait de ${name} ?\nLe combattant n'aura plus d'image personnalisée sur le site.`
+        )
+      ) {
+        return;
+      }
+      await deletePortrait(name);
     });
   });
 }
@@ -118,10 +142,38 @@ async function uploadPortrait(name, dataUrl) {
     }
 
     portraits[name] = { image: result.image };
-    // Recharger depuis le serveur pour confirmer l'enregistrement
-    portraits = await fetchFighterCards();
+    customPortraits.add(name);
+    await refreshPortraitsFromServer();
     renderAdminList();
     showStatus(`Portrait de ${name} enregistré.`);
+  } catch (err) {
+    showStatus(err.message, true);
+  }
+}
+
+async function deletePortrait(name) {
+  showStatus(`Suppression du portrait de ${name}…`);
+
+  try {
+    const response = await fetch('/api/admin/delete-portrait', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        pin: getPin(),
+        fighterName: name,
+      }),
+    });
+
+    const result = await response.json();
+    if (!response.ok) {
+      throw new Error(result.error || 'Échec de la suppression.');
+    }
+
+    delete portraits[name];
+    customPortraits.delete(name);
+    await refreshPortraitsFromServer();
+    renderAdminList();
+    showStatus(`Portrait de ${name} supprimé.`);
   } catch (err) {
     showStatus(err.message, true);
   }

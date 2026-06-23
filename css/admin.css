@@ -194,6 +194,29 @@
   text-align: right;
 }
 
+.admin-btn-delete {
+  font-family: var(--font-display);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--parchment-light);
+  background: #8b2e2e;
+  border: 1.5px solid var(--ink);
+  padding: 0.4rem 0.65rem;
+  cursor: pointer;
+  transition: background 0.2s;
+  box-shadow: 2px 2px 0 var(--gold-antique);
+}
+
+.admin-btn-delete:hover {
+  background: #a33a3a;
+}
+
+.admin-btn-delete:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
 /* ── Éditeur de portrait ── */
 
 .editor-overlay {

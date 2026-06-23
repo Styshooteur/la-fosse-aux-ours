@@ -34,6 +34,14 @@ export async function downloadPortraitFile(storagePath) {
   };
 }
 
+export async function deletePortraitFile(storagePath) {
+  const { error } = await getSupabase()
+    .storage.from(PORTRAITS_BUCKET)
+    .remove([storagePath]);
+
+  if (error) throw error;
+}
+
 export function portraitsSetupHint() {
   return (
     'Stockage portraits non configuré. Exécutez supabase/schema.sql (table fighter_portraits + bucket portraits), ' +

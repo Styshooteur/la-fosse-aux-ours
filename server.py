@@ -87,6 +87,8 @@ class Handler(SimpleHTTPRequestHandler):
             self.handle_verify(payload)
         elif self.path == '/api/admin/upload':
             self.handle_upload(payload)
+        elif self.path == '/api/admin/delete-portrait':
+            self.handle_delete_portrait(payload)
         elif self.path == '/api/tournaments':
             self.handle_tournaments_post(payload)
         else:
@@ -140,9 +142,42 @@ class Handler(SimpleHTTPRequestHandler):
 
         self.send_json(200, {'ok': True, 'image': relative_path})
 
+    def handle_delete_portrait(self, payload):
+        pin = payload.get('pin', '')
+        if not verify_pin(pin):
+            self.send_json(403, {'error': 'Code administrateur incorrect.'})
+            return
+
+        fighter_name = (payload.get('fighterName') or '').strip()
+        if not fighter_name:
+            self.send_json(400, {'error': 'Nom du combattant manquant.'})
+            return
+
+        data = load_json(FIGHTERS_JSON, {'fighters': {}})
+        fighters = data.setdefault('fighters', {})
+        entry = fighters.get(fighter_name)
+
+        if not entry or not entry.get('image'):
+            self.send_json(404, {'error': 'Aucun portrait personnalisé à supprimer pour ce combattant.'})
+            return
+
+        image_path = entry.get('image', '')
+        if image_path.startswith('assets/fighters/'):
+            file_path = ROOT / image_path
+            if file_path.exists() and file_path.is_file():
+                file_path.unlink()
+
+        del fighters[fighter_name]
+        save_json(FIGHTERS_JSON, data)
+        self.send_json(200, {'ok': True})
+
     def serve_fighters(self):
         data = load_json(FIGHTERS_JSON, {'fighters': {}})
-        self.send_json(200, data)
+        fighters = data.get('fighters', {})
+        self.send_json(200, {
+            'fighters': fighters,
+            'customPortraits': list(fighters.keys()),
+        })
 
     def load_tournaments_index(self):
         data = load_json(TOURNAMENTS_INDEX, {'tournaments': []})

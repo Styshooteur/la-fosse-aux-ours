@@ -1,7 +1,7 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { getSupabase, isSupabaseConfigured } from './supabase.js';
-import { portraitsSetupHint } from './portraits-storage.js';
+import { portraitsSetupHint, deletePortraitFile } from './portraits-storage.js';
 
 const LOCAL_REGISTRY = join(process.cwd(), 'data', 'fighters-registry.json');
 
@@ -64,6 +64,15 @@ async function loadRegistryOverlay() {
   return loadRegistryOverlayLocal();
 }
 
+export async function listCustomPortraitNames() {
+  if (isSupabaseConfigured()) {
+    const { data, error } = await getSupabase().from('fighter_portraits').select('name');
+    if (error) throw wrapSupabaseError(error);
+    return (data || []).map((row) => row.name);
+  }
+  return Object.keys(loadRegistryOverlayLocal());
+}
+
 export async function getFightersMap() {
   const base = loadBaseFighters();
   const overlay = await loadRegistryOverlay();
@@ -96,4 +105,48 @@ export async function saveFighterPortrait(name, imageUrl, storagePath = null) {
   overlay[name] = { image: imageUrl };
   saveRegistryOverlayLocal(overlay);
   return imageUrl;
+}
+
+export async function deleteFighterPortrait(name) {
+  const trimmed = (name || '').trim();
+  if (!trimmed) {
+    throw new Error('Nom du combattant manquant.');
+  }
+
+  if (isSupabaseConfigured()) {
+    const { data, error: fetchError } = await getSupabase()
+      .from('fighter_portraits')
+      .select('storage_path')
+      .eq('name', trimmed)
+      .maybeSingle();
+
+    if (fetchError) throw wrapSupabaseError(fetchError);
+    if (!data) {
+      throw new Error('Aucun portrait personnalisé à supprimer pour ce combattant.');
+    }
+
+    if (data.storage_path && !data.storage_path.startsWith('http')) {
+      try {
+        await deletePortraitFile(data.storage_path);
+      } catch {
+        /* fichier déjà absent */
+      }
+    }
+
+    const { error } = await getSupabase().from('fighter_portraits').delete().eq('name', trimmed);
+    if (error) throw wrapSupabaseError(error);
+    return;
+  }
+
+  if (process.env.VERCEL) {
+    throw new Error(portraitsSetupHint());
+  }
+
+  const overlay = loadRegistryOverlayLocal();
+  if (!overlay[trimmed]) {
+    throw new Error('Aucun portrait personnalisé à supprimer pour ce combattant.');
+  }
+
+  delete overlay[trimmed];
+  saveRegistryOverlayLocal(overlay);
 }
