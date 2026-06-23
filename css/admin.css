@@ -908,7 +908,7 @@
 
 .t-match-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
   gap: 0.75rem;
 }
 
@@ -944,30 +944,30 @@
 }
 
 .t-match--compact .t-match-player {
-  font-size: 0.9rem;
-  gap: 0.3rem;
+  font-size: 0.95rem;
+  gap: 0.35rem;
   font-weight: 600;
 }
 
 .t-match-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  grid-template-columns: minmax(5rem, 1fr) auto minmax(5rem, 1fr);
   align-items: center;
-  gap: 0.3rem 0.45rem;
+  gap: 0.35rem 0.55rem;
 }
 
 .t-match-row .t-match-player {
   min-width: 0;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .t-match-row .t-player-name {
-  overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
   display: block;
   min-width: 0;
   line-height: 1.25;
+  overflow: visible;
+  text-overflow: clip;
 }
 
 .t-match-player--a {
@@ -1034,20 +1034,25 @@
   min-width: 0 !important;
   width: 100%;
   max-width: 100%;
-  min-height: var(--t-card-h, 100px);
+  min-height: var(--t-card-h, 116px);
   box-sizing: border-box;
 }
 
 .t-bracket-wrap--compact .t-bracket-col-flex {
-  width: var(--t-col-w, 252px);
-  max-width: var(--t-col-w, 252px);
-  flex: 0 0 var(--t-col-w, 252px);
+  width: var(--t-col-w, 336px);
+  max-width: var(--t-col-w, 336px);
+  flex: 0 0 var(--t-col-w, 336px);
+}
+
+.t-bracket-wrap--compact .t-match-row .t-player-name {
+  overflow: visible;
+  text-overflow: unset;
 }
 
 .t-match--compact .t-score-input {
-  width: 2.5rem;
-  padding: 0.2rem;
-  font-size: 0.85rem;
+  width: 2.75rem;
+  padding: 0.22rem;
+  font-size: 0.9rem;
 }
 
 .t-match--compact .t-match-actions .t-btn {
@@ -1317,6 +1322,14 @@
   gap: 0.35rem;
 }
 
+.t-match-row .t-match-player .t-player-name {
+  display: block;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: nowrap;
+  min-width: 0;
+}
+
 .t-match-player .rank-crown {
   flex-shrink: 0;
   display: inline-flex;
@@ -1350,8 +1363,9 @@
 
 .t-bracket-wrap {
   position: relative;
-  overflow-x: auto;
+  overflow: auto;
   padding: 1rem 0;
+  -webkit-overflow-scrolling: touch;
 }
 
 .t-bracket-wrap--compact .t-bracket-svg {
@@ -1425,7 +1439,7 @@
 }
 
 .t-match {
-  min-width: 240px;
+  min-width: 320px;
 }
 
 .t-bracket-round {

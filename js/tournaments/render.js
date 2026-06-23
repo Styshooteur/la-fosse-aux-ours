@@ -264,10 +264,10 @@ export function renderBracketTree(tournament, matches, options = {}) {
 
   if (!matches.length) return '<p class="t-empty">Aucun match.</p>';
 
-  const unitPx = compact ? 120 : 152;
-  const colW = compact ? 252 : 272;
-  const cardH = compact ? 100 : 112;
-  const connY = cardH / 2 + (compact ? 14 : 16);
+  const unitPx = compact ? 140 : 160;
+  const colW = compact ? 336 : 300;
+  const cardH = compact ? 116 : 124;
+  const connY = cardH / 2 + (compact ? 16 : 18);
 
   const sortRoundMatches = (a, b) => {
     if (sortWithinRound) return sortWithinRound(a, b);
