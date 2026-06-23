@@ -936,7 +936,11 @@
 }
 
 .t-match--compact .t-match-body {
-  padding-top: 1.1rem;
+  padding-top: 1rem;
+}
+
+.t-match--compact .t-match-actions {
+  margin-top: 0.25rem;
 }
 
 .t-match--compact .t-match-player {
@@ -1030,7 +1034,7 @@
   min-width: 0 !important;
   width: 100%;
   max-width: 100%;
-  min-height: var(--t-card-h, 108px);
+  min-height: var(--t-card-h, 100px);
   box-sizing: border-box;
 }
 
@@ -1192,28 +1196,34 @@
 }
 
 .t-de-main {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 1.25rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 1rem 1.25rem;
   min-width: min-content;
 }
 
 .t-de-brackets {
-  flex: 1 1 auto;
+  grid-column: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
 }
 
+.t-de-main--with-gf .t-de-brackets {
+  padding-right: 0.25rem;
+}
+
 .t-de-gf-column {
+  grid-column: 2;
+  grid-row: 1;
   flex: 0 0 auto;
-  width: 272px;
-  align-self: center;
-  position: sticky;
-  right: 0;
-  z-index: 2;
+  width: 268px;
+  align-self: start;
+  margin-top: 3.4rem;
+  position: relative;
+  z-index: 0;
 }
 
 .t-de-zone--gf {
@@ -1264,15 +1274,17 @@
 }
 
 @media (max-width: 960px) {
-  .t-de-main {
-    flex-direction: column;
-    align-items: stretch;
+  .t-de-main,
+  .t-de-main--with-gf {
+    grid-template-columns: 1fr;
   }
 
   .t-de-gf-column {
+    grid-column: 1;
+    grid-row: auto;
     width: 100%;
     max-width: 320px;
-    margin: 0 auto;
+    margin: 0.5rem auto 0;
     position: static;
   }
 }
@@ -1372,6 +1384,12 @@
 
 .t-bracket-col-body {
   position: relative;
+}
+
+.t-bracket-cell--abs {
+  position: absolute;
+  left: 0;
+  right: 0;
 }
 
 .t-bracket-cell {

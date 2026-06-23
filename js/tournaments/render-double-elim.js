@@ -59,7 +59,7 @@ export function renderDoubleEliminationView(tournament, { readonly = false, edit
 
   let html = renderLegend();
 
-  html += `<div class="t-de-main">`;
+  html += `<div class="t-de-main${grandFinal ? ' t-de-main--with-gf' : ''}">`;
 
   html += `
     <div class="t-de-brackets">

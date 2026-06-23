@@ -93,8 +93,8 @@ export function renderMatchCard(tournament, match, options = {}) {
     (pA?.isBye && match.participantBId && !pB?.isBye) ||
     (pB?.isBye && match.participantAId && !pA?.isBye);
 
-  const nameA = waitingA ? 'En attente' : displayParticipantName(tournament, match.participantAId);
-  const nameB = waitingB ? 'En attente' : displayParticipantName(tournament, match.participantBId);
+  const nameA = waitingA ? (compact ? '—' : 'En attente') : displayParticipantName(tournament, match.participantAId);
+  const nameB = waitingB ? (compact ? '—' : 'En attente') : displayParticipantName(tournament, match.participantBId);
 
   const hasBothParticipants =
     match.participantAId && match.participantBId && match.status !== 'bye' && !isBye;
@@ -196,9 +196,47 @@ function filterBracketMatches(tournament, bracketFilter = null, { knockoutOnly =
   });
 }
 
-function matchTopPx(roundIndex, matchIndex, unitPx) {
-  const mult = 2 ** roundIndex;
-  return matchIndex * unitPx * mult + ((mult - 1) * unitPx) / 2;
+function layoutBracketPositions(rounds, linkField, unitPx, cardH) {
+  const pos = new Map();
+
+  rounds.forEach((roundMatches, colIndex) => {
+    if (colIndex === 0) {
+      roundMatches.forEach((m, i) => pos.set(m.id, i * unitPx));
+      return;
+    }
+
+    const prevRound = rounds[colIndex - 1];
+    roundMatches.forEach((m) => {
+      const feeders = prevRound.filter((pm) => pm[linkField] === m.id);
+      if (feeders.length >= 2) {
+        const centers = feeders.map((f) => pos.get(f.id) + cardH / 2);
+        const avg = centers.reduce((s, c) => s + c, 0) / feeders.length;
+        pos.set(m.id, avg - cardH / 2);
+      } else if (feeders.length === 1) {
+        pos.set(m.id, pos.get(feeders[0].id));
+      } else {
+        const placed = roundMatches.filter((rm) => pos.has(rm.id) && rm.id !== m.id);
+        const y = placed.length
+          ? Math.max(...placed.map((rm) => pos.get(rm.id))) + unitPx
+          : 0;
+        pos.set(m.id, y);
+      }
+    });
+
+    const sorted = [...roundMatches].sort((a, b) => pos.get(a.id) - pos.get(b.id));
+    for (let i = 1; i < sorted.length; i++) {
+      const minY = pos.get(sorted[i - 1].id) + unitPx;
+      if (pos.get(sorted[i].id) < minY) pos.set(sorted[i].id, minY);
+    }
+  });
+
+  return pos;
+}
+
+function columnBodyHeight(roundMatches, positions, cardH, pad = 12) {
+  if (!roundMatches.length) return cardH + pad;
+  const maxBottom = Math.max(...roundMatches.map((m) => positions.get(m.id) + cardH));
+  return maxBottom + pad;
 }
 
 /**
@@ -226,10 +264,10 @@ export function renderBracketTree(tournament, matches, options = {}) {
 
   if (!matches.length) return '<p class="t-empty">Aucun match.</p>';
 
-  const unitPx = compact ? 132 : 152;
+  const unitPx = compact ? 120 : 152;
   const colW = compact ? 252 : 272;
-  const cardH = compact ? 108 : 112;
-  const connY = compact ? 54 : 56;
+  const cardH = compact ? 100 : 112;
+  const connY = cardH / 2 + (compact ? 14 : 16);
 
   const sortRoundMatches = (a, b) => {
     if (sortWithinRound) return sortWithinRound(a, b);
@@ -241,27 +279,25 @@ export function renderBracketTree(tournament, matches, options = {}) {
     matches.filter((m) => getRoundKey(m) === key).sort(sortRoundMatches)
   );
 
-  const firstCount = rounds[0]?.length || 1;
-  const colHeight = firstCount * unitPx;
-  const headerOffset = compact ? 36 : 40;
+  const positions = layoutBracketPositions(rounds, linkField, unitPx, cardH);
+  const colHeights = rounds.map((rm) => columnBodyHeight(rm, positions, cardH));
+  const treeHeight = Math.max(...colHeights, cardH);
+  const headerOffset = compact ? 34 : 40;
 
   let svgLines = '';
   const colHtml = rounds
     .map((roundMatches, colIndex) => {
       const cells = roundMatches
-        .map((match, rowIndex) => {
-          const top = matchTopPx(colIndex, rowIndex, unitPx);
-          const prevTop = rowIndex > 0 ? matchTopPx(colIndex, rowIndex - 1, unitPx) : 0;
-          const marginTop = rowIndex === 0 ? top : top - prevTop - cardH;
+        .map((match) => {
+          const top = positions.get(match.id);
 
           const nextId = match[linkField];
           if (colIndex < rounds.length - 1 && nextId) {
             const nextCol = rounds[colIndex + 1];
             const nextMatch = nextCol.find((m) => m.id === nextId);
             if (nextMatch) {
-              const nextRow = nextCol.indexOf(nextMatch);
               const y1 = top + connY;
-              const y2 = matchTopPx(colIndex + 1, nextRow, unitPx) + connY;
+              const y2 = positions.get(nextMatch.id) + connY;
               const x1 = colIndex * colW + colW - 12;
               const x2 = (colIndex + 1) * colW + 12;
               const midX = (x1 + x2) / 2;
@@ -270,20 +306,20 @@ export function renderBracketTree(tournament, matches, options = {}) {
           }
 
           const order = playOrder?.get(match.id);
-          return `<div class="t-bracket-cell" style="margin-top:${Math.max(0, marginTop)}px">${renderMatchCard(tournament, match, matchCardOpts(match, { readonly, compact, matchOrder: order, editingMatchIds }))}</div>`;
+          return `<div class="t-bracket-cell t-bracket-cell--abs" style="top:${top}px">${renderMatchCard(tournament, match, matchCardOpts(match, { readonly, compact, matchOrder: order, editingMatchIds }))}</div>`;
         })
         .join('');
 
       return `
         <div class="t-bracket-col-flex" style="width:${colW}px">
           <h4 class="t-bracket-round">${escapeHtml(roundMatches[0]?.roundName || `Tour ${colIndex + 1}`)}</h4>
-          <div class="t-bracket-col-body" style="min-height:${colHeight}px">${cells}</div>
+          <div class="t-bracket-col-body" style="height:${colHeights[colIndex]}px">${cells}</div>
         </div>`;
     })
     .join('');
 
   const svgW = rounds.length * colW;
-  const totalH = colHeight + headerOffset + 20;
+  const totalH = treeHeight + headerOffset + 8;
 
   return `
     <div class="t-bracket-wrap ${compact ? 't-bracket-wrap--compact' : ''}" style="--t-col-w:${colW}px;--t-card-h:${cardH}px;--t-unit:${unitPx}px">
