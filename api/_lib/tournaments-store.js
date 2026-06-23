@@ -41,6 +41,29 @@ function isLiveTournament(t) {
   return Boolean(t?.broadcast) && !t?.deleted;
 }
 
+function wrapSupabaseError(error) {
+  if (!error) return error;
+  const msg = error.message || '';
+  const code = error.code || '';
+
+  if (code === 'PGRST125' || /invalid path/i.test(msg)) {
+    return new Error(
+      'Connexion Supabase incorrecte. Vérifiez SUPABASE_URL sur Vercel : ' +
+        'doit être https://xxxx.supabase.co uniquement (sans slash final, sans /rest/v1). ' +
+        'Utilisez la clé service_role (legacy), pas la clé anon.'
+    );
+  }
+
+  if (code === 'PGRST205' || /could not find.*table/i.test(msg)) {
+    return new Error(
+      'Table tournaments introuvable dans Supabase. ' +
+        'Ouvrez SQL Editor et exécutez le fichier supabase/schema.sql, puis attendez 1 minute.'
+    );
+  }
+
+  return error;
+}
+
 // ── Local filesystem (start.bat) ────────────────────────────────────────────
 
 function loadIndexLocal() {
@@ -81,7 +104,7 @@ async function listAllFromSupabase() {
     .select('data')
     .order('updated_at', { ascending: false });
 
-  if (error) throw error;
+  if (error) throw wrapSupabaseError(error);
   return (data || []).map((row) => row.data).filter((t) => t && !t.deleted);
 }
 
@@ -92,25 +115,28 @@ async function getTournamentFromSupabase(id) {
     .eq('id', id)
     .maybeSingle();
 
-  if (error) throw error;
+  if (error) throw wrapSupabaseError(error);
   return data?.data || null;
 }
 
 async function saveTournamentToSupabase(tournament) {
   const { error } = await getSupabase()
     .from('tournaments')
-    .upsert({
-      id: tournament.id,
-      data: tournament,
-      updated_at: tournament.updatedAt || new Date().toISOString(),
-    });
+    .upsert(
+      {
+        id: tournament.id,
+        data: tournament,
+        updated_at: tournament.updatedAt || new Date().toISOString(),
+      },
+      { onConflict: 'id' }
+    );
 
-  if (error) throw error;
+  if (error) throw wrapSupabaseError(error);
 }
 
 async function deleteTournamentFromSupabase(id) {
   const { error } = await getSupabase().from('tournaments').delete().eq('id', id);
-  if (error) throw error;
+  if (error) throw wrapSupabaseError(error);
 }
 
 // ── Public API ──────────────────────────────────────────────────────────────

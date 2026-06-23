@@ -17,3 +17,6 @@ alter table public.tournaments enable row level security;
 
 -- Aucune policy publique : seul le service role (API Vercel) accède aux données.
 revoke all on public.tournaments from anon, authenticated;
+
+-- Recharge le cache API (évite l'erreur « Invalid path » juste après création)
+notify pgrst, 'reload schema';
