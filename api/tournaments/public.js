@@ -1,4 +1,5 @@
 import { listLiveTournamentsFull } from '../_lib/tournaments-store.js';
+import { formatStorageError } from '../_lib/storage-error.js';
 
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
@@ -12,6 +13,6 @@ export default async function handler(req, res) {
     const tournaments = await listLiveTournamentsFull();
     return res.status(200).json({ tournaments });
   } catch (error) {
-    return res.status(500).json({ error: error.message || 'Erreur serveur.' });
+    return res.status(500).json({ error: formatStorageError(error) });
   }
 }

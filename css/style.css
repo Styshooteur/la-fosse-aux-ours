@@ -840,7 +840,38 @@ body {
   font-size: 0.85rem;
   color: var(--ink-muted);
   font-style: italic;
-  margin: 0;
+  margin: 0.15rem 0 0;
+}
+
+.section-header-titles {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.btn-refresh {
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  padding: 0.45rem 1rem;
+  background: #fff8ee;
+  color: var(--ink);
+  border: 2px solid var(--ink);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btn-refresh:hover:not(:disabled) {
+  background: #ffe8c8;
+}
+
+.btn-refresh:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.live-events-note {
+  margin-top: 0;
 }
 
 .live-event-card {

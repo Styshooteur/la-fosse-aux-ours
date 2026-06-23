@@ -65,7 +65,7 @@ export function initTournamentsAdmin({ root, getPin, showStatus }) {
       } catch (err) {
         showStatus(err.message, true);
       }
-    }, 400);
+    }, 1500);
   }
 
   async function loadList() {

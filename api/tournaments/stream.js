@@ -1,7 +1,10 @@
 import {
+  getLiveTournamentsRevision,
   listLiveTournamentsFull,
-  liveTournamentsSignature,
 } from '../_lib/tournaments-store.js';
+
+/** SSE temps réel — utilisé uniquement en local (server.py). Le site public en prod utilise un poll 60 s. */
+const STREAM_INTERVAL_MS = 3000;
 
 export const config = {
   maxDuration: 60,
@@ -24,15 +27,15 @@ export default async function handler(req, res) {
     res.writeHead(200);
   }
 
-  let lastSig = '';
+  let lastSig = null;
   let closed = false;
 
   const tick = async () => {
     if (closed) return;
     try {
-      const tournaments = await listLiveTournamentsFull();
-      const sig = liveTournamentsSignature(tournaments);
+      const sig = await getLiveTournamentsRevision();
       if (sig !== lastSig) {
+        const tournaments = sig ? await listLiveTournamentsFull() : [];
         res.write(`data: ${JSON.stringify({ tournaments })}\n\n`);
         lastSig = sig;
       } else {
@@ -44,7 +47,7 @@ export default async function handler(req, res) {
   };
 
   await tick();
-  const interval = setInterval(tick, 1500);
+  const interval = setInterval(tick, STREAM_INTERVAL_MS);
 
   req.on('close', () => {
     closed = true;

@@ -104,9 +104,15 @@
 
     <section class="live-events-section hidden" id="panel-events" aria-label="Événements en cours">
       <div class="section-header">
-        <h2>Événements en cours</h2>
-        <p class="live-connection-status hidden" id="live-connection-status" role="status"></p>
+        <div class="section-header-titles">
+          <h2>Événements en cours</h2>
+          <p class="live-connection-status hidden" id="live-connection-status" role="status"></p>
+        </div>
+        <button type="button" class="btn-refresh" id="live-events-refresh" aria-label="Actualiser les événements">
+          Actualiser
+        </button>
       </div>
+      <p class="section-note live-events-note">Mise à jour automatique toutes les 60&nbsp;s (onglet visible). Utilisez «&nbsp;Actualiser&nbsp;» pour forcer le rechargement.</p>
       <div id="live-events-root" class="live-events-root">
         <p class="live-events-empty">Chargement des événements…</p>
       </div>

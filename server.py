@@ -176,6 +176,14 @@ class Handler(SimpleHTTPRequestHandler):
         tournaments.sort(key=lambda item: item.get('updatedAt', ''), reverse=True)
         return tournaments
 
+    def live_tournaments_revision(self):
+        entries = [entry for entry in self.load_tournaments_index() if entry.get('broadcast')]
+        parts = sorted(
+            f"{item.get('id')}:{item.get('updatedAt')}:{bool(item.get('broadcast'))}"
+            for item in entries
+        )
+        return '|'.join(parts)
+
     def live_tournaments_signature(self, tournaments):
         parts = sorted(
             f"{item.get('id')}:{item.get('updatedAt')}:{bool(item.get('broadcast'))}"
@@ -196,16 +204,16 @@ class Handler(SimpleHTTPRequestHandler):
         last_sig = ''
         try:
             while True:
-                tournaments = self.load_live_tournaments_full()
-                sig = self.live_tournaments_signature(tournaments)
+                sig = self.live_tournaments_revision()
                 if sig != last_sig:
+                    tournaments = self.load_live_tournaments_full() if sig else []
                     payload = json.dumps({'tournaments': tournaments}, ensure_ascii=False)
                     self.wfile.write(f'data: {payload}\n\n'.encode('utf-8'))
                     last_sig = sig
                 else:
                     self.wfile.write(b': heartbeat\n\n')
                 self.wfile.flush()
-                time.sleep(1.5)
+                time.sleep(3)
         except (BrokenPipeError, ConnectionResetError, OSError):
             return
 

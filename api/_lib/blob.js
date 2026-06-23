@@ -37,6 +37,11 @@ export function getBlobCallOptions() {
   return {};
 }
 
+const forcedAccess = process.env.BLOB_ACCESS?.trim().toLowerCase();
+/** Évite 2 lectures par fichier (private puis public) une fois le mode connu. */
+let cachedReadAccess =
+  forcedAccess === 'private' || forcedAccess === 'public' ? forcedAccess : null;
+
 function isWrongAccessMode(message, attemptedAccess) {
   const msg = message.toLowerCase();
   if (attemptedAccess === 'public') {
@@ -64,14 +69,17 @@ export async function putBlob(pathname, body, contentType) {
     ...getBlobCallOptions(),
   };
 
-  const forced = process.env.BLOB_ACCESS?.trim().toLowerCase();
-  const modes =
-    forced === 'private' || forced === 'public' ? [forced] : ['private', 'public'];
+  const modes = cachedReadAccess
+    ? [cachedReadAccess]
+    : forcedAccess === 'private' || forcedAccess === 'public'
+      ? [forcedAccess]
+      : ['private', 'public'];
 
   let lastError = null;
   for (const access of modes) {
     try {
       const blob = await put(pathname, body, { ...base, access });
+      if (!cachedReadAccess) cachedReadAccess = access;
       return { blob, access };
     } catch (error) {
       lastError = error;
@@ -95,9 +103,11 @@ export function imageUrlForBlob(blob, pathname, access) {
 
 /** Lit un fichier Blob (store privé ou public). */
 export async function readBlobContent(pathname) {
-  const forced = process.env.BLOB_ACCESS?.trim().toLowerCase();
-  const modes =
-    forced === 'private' || forced === 'public' ? [forced] : ['private', 'public'];
+  const modes = cachedReadAccess
+    ? [cachedReadAccess]
+    : forcedAccess === 'private' || forcedAccess === 'public'
+      ? [forcedAccess]
+      : ['private', 'public'];
 
   for (const access of modes) {
     try {
@@ -109,6 +119,8 @@ export async function readBlobContent(pathname) {
       if (!result?.stream) {
         continue;
       }
+
+      if (!cachedReadAccess) cachedReadAccess = access;
 
       const buffer = Buffer.from(await new Response(result.stream).arrayBuffer());
       return {

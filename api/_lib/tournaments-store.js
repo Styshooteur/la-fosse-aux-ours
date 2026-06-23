@@ -1,65 +1,27 @@
-import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, unlinkSync } from 'node:fs';
+import {
+  readFileSync,
+  writeFileSync,
+  mkdirSync,
+  existsSync,
+  readdirSync,
+  unlinkSync,
+} from 'node:fs';
 import { join } from 'node:path';
-import { isBlobConfigured, putBlob, readBlobJson } from './blob.js';
-import { TOURNAMENTS_INDEX_BLOB, tournamentBlobPath } from './config.js';
+import { getSupabase, isSupabaseConfigured } from './supabase.js';
 
 const LOCAL_DIR = join(process.cwd(), 'data', 'tournaments');
 const LOCAL_INDEX = join(process.cwd(), 'data', 'tournaments-index.json');
 
-function useBlob() {
-  return isBlobConfigured();
+function useLocalFiles() {
+  return !isSupabaseConfigured();
 }
 
-async function loadIndex() {
-  if (useBlob()) {
-    const data = await readBlobJson(TOURNAMENTS_INDEX_BLOB);
-    return data?.tournaments || [];
+function assertWritable() {
+  if (useLocalFiles() && process.env.VERCEL) {
+    throw new Error(
+      'Stockage tournois non configuré sur Vercel. Créez un projet Supabase gratuit et ajoutez SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY.'
+    );
   }
-
-  if (!existsSync(LOCAL_INDEX)) return [];
-  return JSON.parse(readFileSync(LOCAL_INDEX, 'utf-8')).tournaments || [];
-}
-
-async function saveIndex(entries) {
-  const payload = JSON.stringify({ tournaments: entries }, null, 2);
-  if (useBlob()) {
-    await putBlob(TOURNAMENTS_INDEX_BLOB, payload, 'application/json');
-    return;
-  }
-
-  mkdirSync(LOCAL_DIR, { recursive: true });
-  writeFileSync(LOCAL_INDEX, payload, 'utf-8');
-}
-
-async function loadTournamentFile(id) {
-  if (useBlob()) {
-    return readBlobJson(tournamentBlobPath(id));
-  }
-
-  const path = join(LOCAL_DIR, `${id}.json`);
-  if (!existsSync(path)) return null;
-  return JSON.parse(readFileSync(path, 'utf-8'));
-}
-
-async function saveTournamentFile(tournament) {
-  const payload = JSON.stringify(tournament, null, 2);
-  if (useBlob()) {
-    await putBlob(tournamentBlobPath(tournament.id), payload, 'application/json');
-    return;
-  }
-
-  mkdirSync(LOCAL_DIR, { recursive: true });
-  writeFileSync(join(LOCAL_DIR, `${tournament.id}.json`), payload, 'utf-8');
-}
-
-async function deleteTournamentFile(id) {
-  if (useBlob()) {
-    await putBlob(tournamentBlobPath(id), JSON.stringify({ deleted: true }), 'application/json');
-    return;
-  }
-
-  const path = join(LOCAL_DIR, `${id}.json`);
-  if (existsSync(path)) unlinkSync(path);
 }
 
 function toSummary(t) {
@@ -75,6 +37,84 @@ function toSummary(t) {
   };
 }
 
+function isLiveTournament(t) {
+  return Boolean(t?.broadcast) && !t?.deleted;
+}
+
+// ── Local filesystem (start.bat) ────────────────────────────────────────────
+
+function loadIndexLocal() {
+  if (!existsSync(LOCAL_INDEX)) return [];
+  return JSON.parse(readFileSync(LOCAL_INDEX, 'utf-8')).tournaments || [];
+}
+
+function saveIndexLocal(entries) {
+  mkdirSync(LOCAL_DIR, { recursive: true });
+  writeFileSync(LOCAL_INDEX, JSON.stringify({ tournaments: entries }, null, 2), 'utf-8');
+}
+
+function loadTournamentLocal(id) {
+  const path = join(LOCAL_DIR, `${id}.json`);
+  if (!existsSync(path)) return null;
+  return JSON.parse(readFileSync(path, 'utf-8'));
+}
+
+function saveTournamentLocal(tournament) {
+  mkdirSync(LOCAL_DIR, { recursive: true });
+  writeFileSync(
+    join(LOCAL_DIR, `${tournament.id}.json`),
+    JSON.stringify(tournament, null, 2),
+    'utf-8'
+  );
+}
+
+function deleteTournamentLocal(id) {
+  const path = join(LOCAL_DIR, `${id}.json`);
+  if (existsSync(path)) unlinkSync(path);
+}
+
+// ── Supabase ────────────────────────────────────────────────────────────────
+
+async function listAllFromSupabase() {
+  const { data, error } = await getSupabase()
+    .from('tournaments')
+    .select('data')
+    .order('updated_at', { ascending: false });
+
+  if (error) throw error;
+  return (data || []).map((row) => row.data).filter((t) => t && !t.deleted);
+}
+
+async function getTournamentFromSupabase(id) {
+  const { data, error } = await getSupabase()
+    .from('tournaments')
+    .select('data')
+    .eq('id', id)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data?.data || null;
+}
+
+async function saveTournamentToSupabase(tournament) {
+  const { error } = await getSupabase()
+    .from('tournaments')
+    .upsert({
+      id: tournament.id,
+      data: tournament,
+      updated_at: tournament.updatedAt || new Date().toISOString(),
+    });
+
+  if (error) throw error;
+}
+
+async function deleteTournamentFromSupabase(id) {
+  const { error } = await getSupabase().from('tournaments').delete().eq('id', id);
+  if (error) throw error;
+}
+
+// ── Public API ──────────────────────────────────────────────────────────────
+
 export function liveTournamentsSignature(tournaments) {
   return tournaments
     .map((t) => `${t.id}:${t.updatedAt}:${Boolean(t.broadcast)}`)
@@ -82,58 +122,94 @@ export function liveTournamentsSignature(tournaments) {
     .join('|');
 }
 
-export async function listLiveTournamentsFull() {
-  const index = await loadIndex();
-  const live = index.filter((t) => t.broadcast);
-  const tournaments = [];
-
-  for (const entry of live) {
-    const full = await loadTournamentFile(entry.id);
-    if (full && !full.deleted) {
-      tournaments.push(full);
-    }
+export async function getLiveTournamentsRevision() {
+  if (useLocalFiles()) {
+    return loadIndexLocal()
+      .filter((t) => t.broadcast)
+      .map((t) => `${t.id}:${t.updatedAt}:${Boolean(t.broadcast)}`)
+      .sort()
+      .join('|');
   }
 
-  tournaments.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
-  return tournaments;
+  const tournaments = await listAllFromSupabase();
+  return tournaments
+    .filter(isLiveTournament)
+    .map((t) => `${t.id}:${t.updatedAt}:${Boolean(t.broadcast)}`)
+    .sort()
+    .join('|');
+}
+
+export async function listLiveTournamentsFull() {
+  if (useLocalFiles()) {
+    const live = loadIndexLocal().filter((t) => t.broadcast);
+    const tournaments = [];
+    for (const entry of live) {
+      const full = loadTournamentLocal(entry.id);
+      if (full && !full.deleted) tournaments.push(full);
+    }
+    tournaments.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+    return tournaments;
+  }
+
+  return (await listAllFromSupabase())
+    .filter(isLiveTournament)
+    .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
 }
 
 export async function listTournaments() {
-  const index = await loadIndex();
-  return index.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+  if (useLocalFiles()) {
+    return loadIndexLocal().sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+  }
+
+  return (await listAllFromSupabase()).map(toSummary);
 }
 
 export async function getTournament(id) {
-  return loadTournamentFile(id);
+  if (useLocalFiles()) {
+    return loadTournamentLocal(id);
+  }
+  return getTournamentFromSupabase(id);
 }
 
 export async function saveTournament(tournament) {
-  await saveTournamentFile(tournament);
+  assertWritable();
 
-  const index = await loadIndex();
-  const summary = toSummary(tournament);
-  const existing = index.findIndex((t) => t.id === tournament.id);
+  if (useLocalFiles()) {
+    saveTournamentLocal(tournament);
+    const index = loadIndexLocal();
+    const summary = toSummary(tournament);
+    const existing = index.findIndex((t) => t.id === tournament.id);
+    if (existing >= 0) index[existing] = summary;
+    else index.push(summary);
+    saveIndexLocal(index);
+    return tournament;
+  }
 
-  if (existing >= 0) index[existing] = summary;
-  else index.push(summary);
-
-  await saveIndex(index);
+  await saveTournamentToSupabase(tournament);
   return tournament;
 }
 
 export async function deleteTournament(id) {
-  await deleteTournamentFile(id);
-  const index = await loadIndex();
-  await saveIndex(index.filter((t) => t.id !== id));
+  assertWritable();
+
+  if (useLocalFiles()) {
+    deleteTournamentLocal(id);
+    saveIndexLocal(loadIndexLocal().filter((t) => t.id !== id));
+    return;
+  }
+
+  await deleteTournamentFromSupabase(id);
 }
 
 export async function loadAllTournamentsLocal() {
-  if (useBlob()) return listTournaments();
+  if (useLocalFiles()) {
+    if (!existsSync(LOCAL_DIR)) return [];
+    const files = readdirSync(LOCAL_DIR).filter((f) => f.endsWith('.json'));
+    return files
+      .map((f) => JSON.parse(readFileSync(join(LOCAL_DIR, f), 'utf-8')))
+      .filter(Boolean)
+      .map(toSummary);
+  }
 
-  if (!existsSync(LOCAL_DIR)) return [];
-  const files = readdirSync(LOCAL_DIR).filter((f) => f.endsWith('.json'));
-  const tournaments = files
-    .map((f) => JSON.parse(readFileSync(join(LOCAL_DIR, f), 'utf-8')))
-    .filter(Boolean);
-  return tournaments.map(toSummary);
+  return listTournaments();
 }
