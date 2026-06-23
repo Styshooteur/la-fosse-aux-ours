@@ -272,7 +272,7 @@ export function renderBracketTree(tournament, matches, options = {}) {
           }
 
           const order = playOrder?.get(match.id);
-          return `<div class="t-bracket-cell t-bracket-cell--abs" style="top:${top}px;height:${metrics.cardH}px">${renderMatchCard(tournament, match, matchCardOpts(match, { readonly, matchOrder: order, editingMatchIds, showDropHint }))}</div>`;
+          return `<div class="t-bracket-cell t-bracket-cell--abs" style="top:${top}px">${renderMatchCard(tournament, match, matchCardOpts(match, { readonly, matchOrder: order, editingMatchIds, showDropHint }))}</div>`;
         })
         .join('');
 

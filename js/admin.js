@@ -6,7 +6,7 @@ import {
   formatModifier,
   formatDelta,
 } from './elo-calculator.js?v=20260620i';
-import { initTournamentsAdmin } from './tournaments/tournament-app.js?v=20260625c';
+import { initTournamentsAdmin } from './tournaments/tournament-app.js?v=20260626a';
 
 const PIN_KEY = 'fosse-admin-pin';
 const $ = (id) => document.getElementById(id);

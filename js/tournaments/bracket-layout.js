@@ -9,8 +9,8 @@
  * en découlent par propagation, sans repositionnement indépendant.
  */
 
-/** Espacement fixe entre cartes — jamais réduit pour les grands brackets. */
-const CARD_H = 176;
+/** Hauteur de référence des cartes (alignée sur le rendu CSS après padding compact). */
+const CARD_H = 104;
 const ROW_GAP = 40;
 const COL_W = 384;
 const COL_PAD_X = 6;

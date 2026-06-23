@@ -8,7 +8,7 @@ import {
   renderEliminationBracket,
   renderSwissView,
 } from './render.js';
-import { renderDoubleEliminationView } from './render-double-elim.js?v=20260625c';
+import { renderDoubleEliminationView } from './render-double-elim.js?v=20260626a';
 
 const READONLY = { readonly: true };
 
