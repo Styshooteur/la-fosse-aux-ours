@@ -28,7 +28,7 @@ import {
   exportBracketPng,
   renderSwissView,
 } from './render.js';
-import { renderDoubleEliminationView } from './render-double-elim.js?v=20260624e';
+import { renderDoubleEliminationView } from './render-double-elim.js?v=20260625a';
 
 export function initTournamentsAdmin({ root, getPin, showStatus }) {
   let view = 'list';
@@ -299,9 +299,11 @@ export function initTournamentsAdmin({ root, getPin, showStatus }) {
       body = renderDoubleEliminationView(t, cardOpts);
     } else if (t.format === FORMATS.ROUND_ROBIN) {
       body = `
-        <div class="t-match-list">${t.state.matches.map((m) => renderMatchCard(t, m, { ...cardOpts, editing: editingMatchIds.has(m.id) })).join('')}</div>
-        <h3 class="t-subtitle">Classement</h3>
-        ${renderStandingsTable(t.state.standings)}`;
+        <div class="t-round-robin-view" id="t-bracket-export">
+          <div class="t-match-list t-match-list--round-robin">${t.state.matches.map((m) => renderMatchCard(t, m, { ...cardOpts, editing: editingMatchIds.has(m.id) })).join('')}</div>
+          <h3 class="t-subtitle">Classement</h3>
+          ${renderStandingsTable(t.state.standings)}
+        </div>`;
     } else if (t.format === FORMATS.GROUP_STAGE) {
       const groupsHtml = (t.state.groups || [])
         .map((g) => {
@@ -309,16 +311,20 @@ export function initTournamentsAdmin({ root, getPin, showStatus }) {
           const standings = computeStandings(t, { groupId: g.id });
           return `
             <section class="t-group">
-              <h3 class="t-subtitle">${escapeHtml(g.name)}</h3>
+              <h3 class="t-subtitle t-group-title">${escapeHtml(g.name)}</h3>
               <div class="t-match-list">${groupMatches.map((m) => renderMatchCard(t, m, { ...cardOpts, editing: editingMatchIds.has(m.id) })).join('')}</div>
+              <h4 class="t-group-standings-title">Classement du groupe</h4>
               ${renderStandingsTable(standings)}
             </section>`;
         })
         .join('');
       const knockout = t.state.phase === 'knockout'
-        ? `<h3 class="t-subtitle">Phase éliminatoire</h3>${renderEliminationBracket(t, null, { knockoutOnly: true, ...cardOpts })}`
+        ? `<section class="t-knockout-phase">
+            <h3 class="t-subtitle t-knockout-title">Phase éliminatoire</h3>
+            ${renderEliminationBracket(t, null, { knockoutOnly: true, exportRoot: false, ...cardOpts })}
+          </section>`
         : '';
-      body = groupsHtml + knockout;
+      body = `<div class="t-group-stage-view" id="t-bracket-export">${groupsHtml}${knockout}</div>`;
     } else if (t.format === FORMATS.SWISS) {
       body = renderSwissView(t, { canAdvance: swissCanAdvance(t), ...cardOpts });
     }

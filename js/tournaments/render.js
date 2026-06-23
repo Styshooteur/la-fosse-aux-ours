@@ -1,6 +1,12 @@
 import { participantById, participantName, displayParticipantName } from './utils.js';
 import { computeStandings } from './standings.js';
 import { STATUS } from './types.js';
+import {
+  computeBracketLayoutMetrics,
+  layoutBracketPositions,
+  columnBodyHeight,
+  connectorPath,
+} from './bracket-layout.js';
 
 export function escapeHtml(str) {
   const div = document.createElement('div');
@@ -79,6 +85,7 @@ export function renderMatchCard(tournament, match, options = {}) {
     matchOrder = null,
     availability = null,
     editing = false,
+    showDropHint = false,
   } = options;
 
   const avail = availability ?? getMatchAvailability(tournament, match);
@@ -129,8 +136,14 @@ export function renderMatchCard(tournament, match, options = {}) {
     }
   }
 
+  const dropBadge =
+    showDropHint && match.loserNextMatchId
+      ? '<span class="t-match-drop-badge" title="Le perdant descend au repêchage">↓ Repêchage</span>'
+      : '';
+
   return `
-    <article class="t-match t-match--${avail} ${compact ? 't-match--compact' : ''} ${editing ? 't-match--editing' : ''} ${isBye ? 't-match--bye' : ''}" data-match-id="${match.id}" data-availability="${avail}"${matchOrder != null ? ` title="Ordre de jeu M${matchOrder}"` : ''}>
+    <article class="t-match t-match--${avail} ${compact ? 't-match--compact' : ''} ${editing ? 't-match--editing' : ''} ${isBye ? 't-match--bye' : ''} ${matchOrder != null ? 't-match--numbered' : ''}" data-match-id="${match.id}" data-availability="${avail}">
+      ${matchOrder != null ? `<span class="t-match-order" title="Ordre de jeu">M${matchOrder}</span>` : ''}
       <span class="t-match-state">${AVAILABILITY_LABELS[avail]}</span>
       <div class="t-match-body">
         <div class="t-match-row">
@@ -144,6 +157,7 @@ export function renderMatchCard(tournament, match, options = {}) {
             <span class="t-color-dot" style="background:${waitingB ? '#ccc' : colorB}"></span>
           </div>
         </div>
+        ${dropBadge}
       </div>
       ${actions ? `<footer class="t-match-actions">${actions}</footer>` : ''}
     </article>`;
@@ -196,57 +210,11 @@ function filterBracketMatches(tournament, bracketFilter = null, { knockoutOnly =
   });
 }
 
-function layoutBracketPositions(rounds, linkField, unitPx, cardH) {
-  const pos = new Map();
-
-  rounds.forEach((roundMatches, colIndex) => {
-    if (colIndex === 0) {
-      roundMatches.forEach((m, i) => pos.set(m.id, i * unitPx));
-      return;
-    }
-
-    const prevRound = rounds[colIndex - 1];
-    roundMatches.forEach((m) => {
-      const feeders = prevRound.filter((pm) => pm[linkField] === m.id);
-      if (feeders.length >= 2) {
-        const centers = feeders.map((f) => pos.get(f.id) + cardH / 2);
-        const avg = centers.reduce((s, c) => s + c, 0) / feeders.length;
-        pos.set(m.id, avg - cardH / 2);
-      } else if (feeders.length === 1) {
-        pos.set(m.id, pos.get(feeders[0].id));
-      } else {
-        const placed = roundMatches.filter((rm) => pos.has(rm.id) && rm.id !== m.id);
-        const y = placed.length
-          ? Math.max(...placed.map((rm) => pos.get(rm.id))) + unitPx
-          : 0;
-        pos.set(m.id, y);
-      }
-    });
-
-    const sorted = [...roundMatches].sort((a, b) => pos.get(a.id) - pos.get(b.id));
-    for (let i = 1; i < sorted.length; i++) {
-      const minY = pos.get(sorted[i - 1].id) + unitPx;
-      if (pos.get(sorted[i].id) < minY) pos.set(sorted[i].id, minY);
-    }
-  });
-
-  return pos;
-}
-
-function columnBodyHeight(roundMatches, positions, cardH, pad = 12) {
-  if (!roundMatches.length) return cardH + pad;
-  const maxBottom = Math.max(...roundMatches.map((m) => positions.get(m.id) + cardH));
-  return maxBottom + pad;
-}
-
-/**
- * Arbre SVG classique (colonnes par tour + connecteurs).
- * compact ≈ 25 % plus petit pour la double élimination.
- */
 function matchCardOpts(match, options = {}) {
-  const { editingMatchIds, ...rest } = options;
+  const { editingMatchIds, showDropHint, ...rest } = options;
   return {
     ...rest,
+    showDropHint: showDropHint ?? rest.showDropHint ?? false,
     editing: rest.editing ?? editingMatchIds?.has(match.id) ?? false,
   };
 }
@@ -254,20 +222,16 @@ function matchCardOpts(match, options = {}) {
 export function renderBracketTree(tournament, matches, options = {}) {
   const {
     readonly = false,
-    compact = false,
     playOrder = null,
     getRoundKey = (m) => m.round,
     linkField = 'nextMatchId',
     editingMatchIds = null,
     sortWithinRound = null,
+    showDropHint = false,
+    treeId = null,
   } = options;
 
   if (!matches.length) return '<p class="t-empty">Aucun match.</p>';
-
-  const unitPx = compact ? 140 : 160;
-  const colW = compact ? 336 : 300;
-  const cardH = compact ? 116 : 124;
-  const connY = cardH / 2 + (compact ? 16 : 18);
 
   const sortRoundMatches = (a, b) => {
     if (sortWithinRound) return sortWithinRound(a, b);
@@ -279,10 +243,11 @@ export function renderBracketTree(tournament, matches, options = {}) {
     matches.filter((m) => getRoundKey(m) === key).sort(sortRoundMatches)
   );
 
-  const positions = layoutBracketPositions(rounds, linkField, unitPx, cardH);
-  const colHeights = rounds.map((rm) => columnBodyHeight(rm, positions, cardH));
-  const treeHeight = Math.max(...colHeights, cardH);
-  const headerOffset = compact ? 34 : 40;
+  const metrics = computeBracketLayoutMetrics(rounds);
+  const positions = layoutBracketPositions(rounds, linkField, metrics);
+  const colHeights = rounds.map((rm) => columnBodyHeight(rm, positions, metrics));
+  const treeHeight = Math.max(...colHeights, metrics.cardH);
+  const totalH = treeHeight + metrics.roundHeaderH + 12;
 
   let svgLines = '';
   const colHtml = rounds
@@ -296,41 +261,43 @@ export function renderBracketTree(tournament, matches, options = {}) {
             const nextCol = rounds[colIndex + 1];
             const nextMatch = nextCol.find((m) => m.id === nextId);
             if (nextMatch) {
-              const y1 = top + connY;
-              const y2 = positions.get(nextMatch.id) + connY;
-              const x1 = colIndex * colW + colW - 12;
-              const x2 = (colIndex + 1) * colW + 12;
-              const midX = (x1 + x2) / 2;
-              svgLines += `<path d="M${x1} ${y1} H${midX} V${y2} H${x2}" fill="none" stroke="#7a1a1a" stroke-width="${compact ? 1.5 : 2}" opacity="0.42"/>`;
+              const topTo = positions.get(nextMatch.id);
+              svgLines += `<path d="${connectorPath(colIndex, top, topTo, metrics)}" class="t-bracket-conn t-bracket-conn--progress" fill="none" stroke-width="2"/>`;
             }
           }
 
           const order = playOrder?.get(match.id);
-          return `<div class="t-bracket-cell t-bracket-cell--abs" style="top:${top}px">${renderMatchCard(tournament, match, matchCardOpts(match, { readonly, compact, matchOrder: order, editingMatchIds }))}</div>`;
+          return `<div class="t-bracket-cell t-bracket-cell--abs" style="top:${top}px">${renderMatchCard(tournament, match, matchCardOpts(match, { readonly, matchOrder: order, editingMatchIds, showDropHint }))}</div>`;
         })
         .join('');
 
       return `
-        <div class="t-bracket-col-flex" style="width:${colW}px">
+        <div class="t-bracket-col-flex">
           <h4 class="t-bracket-round">${escapeHtml(roundMatches[0]?.roundName || `Tour ${colIndex + 1}`)}</h4>
           <div class="t-bracket-col-body" style="height:${colHeights[colIndex]}px">${cells}</div>
         </div>`;
     })
     .join('');
 
-  const svgW = rounds.length * colW;
-  const totalH = treeHeight + headerOffset + 8;
+  const svgW = rounds.length * metrics.colW;
+  const wrapId = treeId ? ` id="${treeId}"` : '';
 
   return `
-    <div class="t-bracket-wrap ${compact ? 't-bracket-wrap--compact' : ''}" style="--t-col-w:${colW}px;--t-card-h:${cardH}px;--t-unit:${unitPx}px">
+    <div class="t-bracket-wrap t-bracket-wrap--tree"${wrapId}
+      style="--t-col-w:${metrics.colW}px;--t-card-h:${metrics.cardH}px;--t-slot:${metrics.slotPitch}px;--t-round-hdr:${metrics.roundHeaderH}px;--t-tree-h:${totalH}px;--t-tree-w:${svgW}px">
       <svg class="t-bracket-svg" width="${svgW}" height="${totalH}" viewBox="0 0 ${svgW} ${totalH}" aria-hidden="true">${svgLines}</svg>
-      <div class="t-bracket-flex" style="min-height:${totalH}px;width:${svgW}px">${colHtml}</div>
+      <div class="t-bracket-flex">${colHtml}</div>
     </div>`;
 }
 
 export function renderEliminationBracket(tournament, bracketFilter = null, options = {}) {
-  const { knockoutOnly = false, excludeLastLbRound = false, readonly = false, editingMatchIds = null } =
-    options;
+  const {
+    knockoutOnly = false,
+    excludeLastLbRound = false,
+    readonly = false,
+    editingMatchIds = null,
+    exportRoot = true,
+  } = options;
   let matches = filterBracketMatches(tournament, bracketFilter, { knockoutOnly });
 
   if (excludeLastLbRound && bracketFilter === 'loser' && matches.length) {
@@ -338,7 +305,13 @@ export function renderEliminationBracket(tournament, bracketFilter = null, optio
     matches = matches.filter((m) => m.round < maxRound);
   }
 
-  return renderBracketTree(tournament, matches, { readonly, editingMatchIds, getRoundKey: (m) => m.round });
+  const tree = renderBracketTree(tournament, matches, {
+    readonly,
+    editingMatchIds,
+    getRoundKey: (m) => m.round,
+  });
+  if (!exportRoot) return tree;
+  return `<div class="t-bracket-view" id="t-bracket-export">${tree}</div>`;
 }
 
 export function renderDoubleEliminationFinale(tournament) {

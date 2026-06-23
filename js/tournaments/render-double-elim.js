@@ -20,10 +20,10 @@ function renderLegend() {
         </span>
       </div>
       <p class="t-de-legend-flow">
-        <strong>M#</strong> = ordre de jeu recommandé ·
-        <strong>Vainqueurs</strong> : une défaite envoie au repêchage ·
-        <strong>Repêchage</strong> : deux défaites éliminent ·
-        <strong>Grande finale</strong> en dernier (M max)
+        <strong>M#</strong> = ordre de jeu ·
+        <span class="t-de-legend-conn t-de-legend-conn--progress"></span> progression ·
+        <span class="t-de-legend-conn t-de-legend-conn--drop"></span> perdant → repêchage ·
+        <strong>Grande finale</strong> en dernier
       </p>
     </div>`;
 }
@@ -39,7 +39,7 @@ function renderGrandFinal(tournament, grandFinal, playOrder, readonly, editingMa
           <p class="t-de-hint">${escapeHtml(grandFinal.deHint || 'Vainqueur WB vs vainqueur repêchage.')}</p>
         </header>
         <div class="t-de-gf-wrap">
-          ${renderMatchCard(tournament, grandFinal, { readonly, compact: false, matchOrder: order, editing })}
+          ${renderMatchCard(tournament, grandFinal, { readonly, matchOrder: order, editing })}
         </div>
       </section>
     </aside>`;
@@ -55,17 +55,19 @@ export function renderDoubleEliminationView(tournament, { readonly = false, edit
   const lbMatches = tournament.state.matches.filter((m) => m.bracket === 'loser');
   const grandFinal = tournament.state.matches.find((m) => m.bracket === 'final');
 
-  const treeOpts = { readonly, compact: true, playOrder, editingMatchIds, sortWithinRound };
+  const treeOpts = { readonly, playOrder, editingMatchIds, sortWithinRound };
 
   const wbSection = `
     <section class="t-de-zone t-de-zone--wb">
       <header class="t-de-zone-header">
         <h3 class="t-subtitle">Bracket Vainqueurs</h3>
-        <p class="t-de-hint">Winner Bracket — progression vers la finale</p>
+        <p class="t-de-hint">Winner Bracket — une défaite envoie au repêchage</p>
       </header>
       ${renderBracketTree(tournament, wbMatches, {
         ...treeOpts,
         getRoundKey: (m) => m.wbRound ?? m.round,
+        showDropHint: true,
+        treeId: 't-bracket-wb',
       })}
     </section>`;
 
@@ -73,11 +75,12 @@ export function renderDoubleEliminationView(tournament, { readonly = false, edit
     <section class="t-de-zone t-de-zone--lb">
       <header class="t-de-zone-header">
         <h3 class="t-subtitle">Bracket Repêchage</h3>
-        <p class="t-de-hint">Loser Bracket — 2e chance après une défaite en vainqueurs</p>
+        <p class="t-de-hint">Loser Bracket — deux défaites éliminent</p>
       </header>
       ${renderBracketTree(tournament, lbMatches, {
         ...treeOpts,
         getRoundKey: (m) => m.lbRound ?? m.round,
+        treeId: 't-bracket-lb',
       })}
     </section>`;
 
