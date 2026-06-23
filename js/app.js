@@ -1,12 +1,11 @@
 import { CONFIG } from './config.js?v=20260620f';
 import { fetchLeaderboard, fetchFighterCards, gradeToClass } from './sheets.js?v=20260620f';
-import { initLiveEvents, teardownLiveEvents } from './events.js?v=20260622d';
+import { initLiveEventsNav, activateLiveEventsPanel, deactivateLiveEventsPanel } from './events.js?v=20260625e';
 
 let fightersData = [];
 let fighterCards = {};
 let refreshTimer = null;
 let activePanel = 'leaderboard';
-let eventsStarted = false;
 
 const $ = (id) => document.getElementById(id);
 
@@ -214,13 +213,9 @@ function switchPanel(panel) {
   navEvents?.classList.toggle('site-nav-btn--active', panel === 'events');
 
   if (panel === 'events') {
-    if (!eventsStarted) {
-      eventsStarted = true;
-      initLiveEvents();
-    }
+    activateLiveEventsPanel();
   } else {
-    teardownLiveEvents();
-    eventsStarted = false;
+    deactivateLiveEventsPanel();
   }
 }
 
@@ -250,6 +245,7 @@ function startAutoRefresh() {
 async function init() {
   setupEventListeners();
   switchPanel('leaderboard');
+  initLiveEventsNav();
   await loadData();
   startAutoRefresh();
 }

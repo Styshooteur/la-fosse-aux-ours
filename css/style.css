@@ -805,6 +805,38 @@ body {
   transition: background 0.2s, color 0.2s, border-color 0.2s;
 }
 
+.site-nav-btn-inner {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.nav-events-live-icon {
+  flex-shrink: 0;
+  color: #2f9656;
+}
+
+.site-nav-btn--live:not(.site-nav-btn--active) {
+  color: var(--ink);
+}
+
+.site-nav-btn--live .nav-events-live-icon {
+  animation: live-sword-pulse 2.2s ease-in-out infinite;
+}
+
+@keyframes live-sword-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.82;
+    transform: scale(0.96);
+  }
+}
+
 .site-nav-btn:hover {
   color: var(--ink);
   background: rgba(255, 255, 255, 0.35);
@@ -901,6 +933,8 @@ body {
   border-radius: 12px;
   padding: 1.25rem 1.5rem 1.5rem;
   box-shadow: var(--shadow-parchment);
+  max-width: 100%;
+  min-width: 0;
 }
 
 .live-event-header {
@@ -969,6 +1003,66 @@ body {
 
 .t-public-readonly .t-match {
   pointer-events: none;
+}
+
+/* Bracket en direct : scroll horizontal sous l'arbre, pas en bas de page */
+.live-event-bracket {
+  overflow-x: clip;
+  overflow-y: visible;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.live-event-bracket.tournament-view-body {
+  overflow-x: clip;
+}
+
+.live-event-bracket .t-de-view,
+.live-event-bracket .t-bracket-view,
+.live-event-bracket .t-round-robin-view,
+.live-event-bracket .t-group-stage-view,
+.live-event-bracket .t-swiss-view {
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: visible;
+}
+
+.live-event-bracket .t-de-main,
+.live-event-bracket .t-de-main--with-gf {
+  max-width: 100%;
+  min-width: 0;
+}
+
+.live-event-bracket .t-de-zone {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.live-event-bracket .t-bracket-wrap {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: auto;
+  max-height: min(72vh, 3200px);
+  margin-bottom: 0.5rem;
+  padding-bottom: 0.4rem;
+  scrollbar-gutter: stable;
+}
+
+.live-event-bracket .t-bracket-wrap:last-child {
+  margin-bottom: 0;
+}
+
+.live-event-bracket .t-de-zone--wb .t-bracket-wrap,
+.live-event-bracket .t-de-zone--lb .t-bracket-wrap {
+  margin-bottom: 0.65rem;
+}
+
+.live-event-bracket .t-match-list {
+  overflow-x: auto;
+  max-width: 100%;
+  padding-bottom: 0.35rem;
 }
 
 /* ── Responsive ── */

@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=MedievalSharp&family=UnifrakturMaguntia&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=20260622c">
+  <link rel="stylesheet" href="css/style.css?v=20260625e">
   <link rel="stylesheet" href="css/admin.css?v=20260625c">
 </head>
 <body>
@@ -30,7 +30,25 @@
         Classement
       </button>
       <button type="button" class="site-nav-btn" data-panel="events" id="nav-events">
-        Événements en cours
+        <span class="site-nav-btn-inner">
+          <svg class="nav-events-live-icon hidden" id="nav-events-live-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
+            <g fill="currentColor">
+              <g transform="translate(12 12) rotate(-42) translate(-12 -12)">
+                <path d="M11 2.2h2l1.1 13.2H9.9L11 2.2z"/>
+                <rect x="8.1" y="15.1" width="7.8" height="1.7" rx="0.25"/>
+                <rect x="10.7" y="16.6" width="2.6" height="4.2" rx="0.2"/>
+                <circle cx="12" cy="22" r="1.35"/>
+              </g>
+              <g transform="translate(12 12) rotate(42) translate(-12 -12)">
+                <path d="M11 2.2h2l1.1 13.2H9.9L11 2.2z"/>
+                <rect x="8.1" y="15.1" width="7.8" height="1.7" rx="0.25"/>
+                <rect x="10.7" y="16.6" width="2.6" height="4.2" rx="0.2"/>
+                <circle cx="12" cy="22" r="1.35"/>
+              </g>
+            </g>
+          </svg>
+          Événements en cours
+        </span>
       </button>
     </nav>
 
@@ -138,7 +156,7 @@
     </div>
   </div>
 
-  <script type="module" src="js/app.js?v=20260622d"></script>
+  <script type="module" src="js/app.js?v=20260625e"></script>
   <script>
     window.addEventListener('error', (event) => {
       const loading = document.getElementById('loading');

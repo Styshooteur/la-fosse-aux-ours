@@ -9,6 +9,11 @@ const SSE_ENABLED = ['localhost', '127.0.0.1'].includes(location.hostname);
 let stream = null;
 let pollTimer = null;
 let lastSig = '';
+let lastHasLive = null;
+let panelActive = false;
+let navStarted = false;
+let cachedTournaments = [];
+let inFlightFetch = null;
 
 const $ = (id) => document.getElementById(id);
 
@@ -19,9 +24,22 @@ function setStatus(text, visible) {
   el.classList.toggle('hidden', !visible);
 }
 
-function applyTournaments(tournaments) {
+function setLiveNavIndicator(hasLive) {
+  if (hasLive === lastHasLive) return;
+  lastHasLive = hasLive;
+
+  const icon = $('nav-events-live-icon');
+  const nav = $('nav-events');
+  if (icon) {
+    icon.classList.toggle('hidden', !hasLive);
+    icon.hidden = !hasLive;
+  }
+  nav?.classList.toggle('site-nav-btn--live', hasLive);
+}
+
+function renderPanelContent(tournaments) {
   const container = $('live-events-root');
-  if (!container) return;
+  if (!container || !panelActive) return;
 
   const sig = liveTournamentsSignature(tournaments);
   if (sig === lastSig) return;
@@ -36,11 +54,27 @@ function applyTournaments(tournaments) {
   }
 }
 
+function applyTournaments(tournaments) {
+  cachedTournaments = tournaments;
+  setLiveNavIndicator(tournaments.length > 0);
+  renderPanelContent(tournaments);
+}
+
 async function fetchLiveTournaments() {
-  const res = await fetch('/api/tournaments/public', { cache: 'no-store' });
-  if (!res.ok) throw new Error('Impossible de charger les événements.');
-  const data = await res.json();
-  return data.tournaments || [];
+  if (inFlightFetch) return inFlightFetch;
+
+  inFlightFetch = (async () => {
+    const res = await fetch('/api/tournaments/public', { cache: 'no-store' });
+    if (!res.ok) throw new Error('Impossible de charger les événements.');
+    const data = await res.json();
+    return data.tournaments || [];
+  })();
+
+  try {
+    return await inFlightFetch;
+  } finally {
+    inFlightFetch = null;
+  }
 }
 
 function stopPolling() {
@@ -119,18 +153,15 @@ function onVisibilityChange() {
   }
 }
 
-export async function initLiveEvents() {
-  const container = $('live-events-root');
-  if (!container) return;
-
-  const refreshBtn = $('live-events-refresh');
-  refreshBtn?.addEventListener('click', () => refreshLiveEvents());
+/** Indicateur nav + polling léger — démarré au chargement du site. */
+export async function initLiveEventsNav() {
+  if (navStarted) return;
+  navStarted = true;
 
   try {
     applyTournaments(await fetchLiveTournaments());
-  } catch {
-    container.innerHTML =
-      '<p class="live-events-empty">Impossible de charger les événements pour le moment.</p>';
+  } catch (err) {
+    console.error('Erreur chargement indicateur événements', err);
   }
 
   if (SSE_ENABLED) {
@@ -142,9 +173,32 @@ export async function initLiveEvents() {
   document.addEventListener('visibilitychange', onVisibilityChange);
 }
 
+/** Affiche le panneau événements (réutilise le cache, pas de requête supplémentaire). */
+export function activateLiveEventsPanel() {
+  panelActive = true;
+  const container = $('live-events-root');
+  if (!container) return;
+
+  if (lastHasLive === null) {
+    container.innerHTML = '<p class="live-events-empty">Chargement des événements…</p>';
+    return;
+  }
+
+  lastSig = '';
+  renderPanelContent(cachedTournaments);
+}
+
+export function deactivateLiveEventsPanel() {
+  panelActive = false;
+}
+
 export function teardownLiveEvents() {
   stopStream();
   stopPolling();
   document.removeEventListener('visibilitychange', onVisibilityChange);
+  navStarted = false;
+  panelActive = false;
   lastSig = '';
+  lastHasLive = null;
+  cachedTournaments = [];
 }
