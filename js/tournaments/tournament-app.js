@@ -47,6 +47,8 @@ export function initTournamentsAdmin({ root, getPin, showStatus }) {
   const $create = root.querySelector('#t-view-create');
   const $detail = root.querySelector('#t-view-detail');
 
+  renderList();
+
   function showView(name) {
     view = name;
     $list.classList.toggle('hidden', name !== 'list');
@@ -67,7 +69,12 @@ export function initTournamentsAdmin({ root, getPin, showStatus }) {
   }
 
   async function loadList() {
-    tournaments = await fetchTournaments();
+    try {
+      tournaments = await fetchTournaments();
+    } catch (err) {
+      tournaments = [];
+      showStatus(err.message || 'Impossible de charger la liste des tournois.', true);
+    }
     renderList();
   }
 

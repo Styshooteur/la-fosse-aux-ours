@@ -1,10 +1,10 @@
-import { verifyPin } from './_lib/admin.js';
+import { verifyPin } from '../_lib/admin.js';
 import {
   deleteTournament,
   getTournament,
   listTournaments,
   saveTournament,
-} from './_lib/tournaments-store.js';
+} from '../_lib/tournaments-store.js';
 
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
