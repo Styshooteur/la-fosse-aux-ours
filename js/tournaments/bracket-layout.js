@@ -4,26 +4,28 @@
  */
 export function computeBracketLayoutMetrics(rounds) {
   const firstCount = Math.max(1, rounds[0]?.length || 1);
-  const roundCount = Math.max(1, rounds.length);
 
-  const cardH = 132;
-  const rowGap = Math.max(28, Math.min(44, Math.round(200 / Math.sqrt(firstCount))));
+  // Hauteur réelle d'une carte (badges + scores + bouton Valider)
+  const cardH = 176;
+  const rowGap = Math.max(32, Math.min(52, Math.round(260 / Math.sqrt(firstCount))));
   const slotPitch = cardH + rowGap;
   const colW = 384;
-  const roundHeaderH = 42;
-  const treePadBottom = 24;
-  const connInset = 16;
+  const colPadX = 6;
+  const roundHeaderH = 38;
+  const treePadBottom = 28;
+  const connInset = 12;
 
   return {
     cardH,
     rowGap,
     slotPitch,
     colW,
+    colPadX,
     roundHeaderH,
     treePadBottom,
     connInset,
     firstCount,
-    roundCount,
+    roundCount: Math.max(1, rounds.length),
   };
 }
 
@@ -75,12 +77,21 @@ export function matchCenterY(top, metrics) {
   return metrics.roundHeaderH + top + metrics.cardH / 2;
 }
 
+/** Coordonnée X du bord droit utile d'une colonne (carte). */
+export function columnCardRightX(colIndex, metrics) {
+  return (colIndex + 1) * metrics.colW - metrics.colPadX - metrics.connInset;
+}
+
+/** Coordonnée X du bord gauche utile de la colonne suivante. */
+export function columnCardLeftX(colIndex, metrics) {
+  return (colIndex + 1) * metrics.colW + metrics.colPadX + metrics.connInset;
+}
+
 export function connectorPath(colIndex, topFrom, topTo, metrics) {
-  const { colW, connInset, roundHeaderH, cardH } = metrics;
-  const y1 = roundHeaderH + topFrom + cardH / 2;
-  const y2 = roundHeaderH + topTo + cardH / 2;
-  const x1 = colIndex * colW + colW - connInset;
-  const x2 = (colIndex + 1) * colW + connInset;
+  const y1 = matchCenterY(topFrom, metrics);
+  const y2 = matchCenterY(topTo, metrics);
+  const x1 = columnCardRightX(colIndex, metrics);
+  const x2 = columnCardLeftX(colIndex, metrics);
   const midX = (x1 + x2) / 2;
   return `M${x1} ${y1} H${midX} V${y2} H${x2}`;
 }

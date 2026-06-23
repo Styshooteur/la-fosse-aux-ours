@@ -86,6 +86,7 @@ export function renderMatchCard(tournament, match, options = {}) {
     availability = null,
     editing = false,
     showDropHint = false,
+    validateShort = false,
   } = options;
 
   const avail = availability ?? getMatchAvailability(tournament, match);
@@ -121,7 +122,7 @@ export function renderMatchCard(tournament, match, options = {}) {
         ? '<div class="t-match-scores t-match-scores--readonly"><span class="t-match-score t-match-score--bye">Exempt</span></div>'
         : `<div class="t-match-scores t-match-scores--readonly"><span class="t-match-score t-match-score--wait">${waitingA || waitingB ? '…' : '—'}</span></div>`;
 
-  const validateLabel = compact ? 'Valider' : 'Valider le résultat';
+  const validateLabel = validateShort || compact ? 'Valider' : 'Valider le résultat';
 
   let actions = '';
   if (!readonly && hasBothParticipants) {
@@ -214,6 +215,7 @@ function matchCardOpts(match, options = {}) {
   const { editingMatchIds, showDropHint, ...rest } = options;
   return {
     ...rest,
+    validateShort: true,
     showDropHint: showDropHint ?? rest.showDropHint ?? false,
     editing: rest.editing ?? editingMatchIds?.has(match.id) ?? false,
   };
@@ -246,8 +248,8 @@ export function renderBracketTree(tournament, matches, options = {}) {
   const metrics = computeBracketLayoutMetrics(rounds);
   const positions = layoutBracketPositions(rounds, linkField, metrics);
   const colHeights = rounds.map((rm) => columnBodyHeight(rm, positions, metrics));
-  const treeHeight = Math.max(...colHeights, metrics.cardH);
-  const totalH = treeHeight + metrics.roundHeaderH + 12;
+  const treeBodyHeight = Math.max(...colHeights, metrics.cardH);
+  const totalH = treeBodyHeight + metrics.roundHeaderH + metrics.treePadBottom;
 
   let svgLines = '';
   const colHtml = rounds
@@ -262,31 +264,32 @@ export function renderBracketTree(tournament, matches, options = {}) {
             const nextMatch = nextCol.find((m) => m.id === nextId);
             if (nextMatch) {
               const topTo = positions.get(nextMatch.id);
-              svgLines += `<path d="${connectorPath(colIndex, top, topTo, metrics)}" class="t-bracket-conn t-bracket-conn--progress" fill="none" stroke-width="2"/>`;
+              svgLines += `<path d="${connectorPath(colIndex, top, topTo, metrics)}" class="t-bracket-conn t-bracket-conn--progress" fill="none" stroke-width="2" vector-effect="non-scaling-stroke"/>`;
             }
           }
 
           const order = playOrder?.get(match.id);
-          return `<div class="t-bracket-cell t-bracket-cell--abs" style="top:${top}px">${renderMatchCard(tournament, match, matchCardOpts(match, { readonly, matchOrder: order, editingMatchIds, showDropHint }))}</div>`;
+          return `<div class="t-bracket-cell t-bracket-cell--abs" style="top:${top}px;height:${metrics.cardH}px">${renderMatchCard(tournament, match, matchCardOpts(match, { readonly, matchOrder: order, editingMatchIds, showDropHint }))}</div>`;
         })
         .join('');
 
       return `
         <div class="t-bracket-col-flex">
           <h4 class="t-bracket-round">${escapeHtml(roundMatches[0]?.roundName || `Tour ${colIndex + 1}`)}</h4>
-          <div class="t-bracket-col-body" style="height:${colHeights[colIndex]}px">${cells}</div>
+          <div class="t-bracket-col-body" style="height:${treeBodyHeight}px">${cells}</div>
         </div>`;
     })
     .join('');
 
   const svgW = rounds.length * metrics.colW;
-  const wrapId = treeId ? ` id="${treeId}"` : '';
 
   return `
-    <div class="t-bracket-wrap t-bracket-wrap--tree"${wrapId}
+    <div class="t-bracket-wrap t-bracket-wrap--tree"${treeId ? ` id="${treeId}"` : ''}
       style="--t-col-w:${metrics.colW}px;--t-card-h:${metrics.cardH}px;--t-slot:${metrics.slotPitch}px;--t-round-hdr:${metrics.roundHeaderH}px;--t-tree-h:${totalH}px;--t-tree-w:${svgW}px">
-      <svg class="t-bracket-svg" width="${svgW}" height="${totalH}" viewBox="0 0 ${svgW} ${totalH}" aria-hidden="true">${svgLines}</svg>
-      <div class="t-bracket-flex">${colHtml}</div>
+      <div class="t-bracket-stage" style="width:${svgW}px;min-height:${totalH}px">
+        <svg class="t-bracket-svg" width="${svgW}" height="${totalH}" viewBox="0 0 ${svgW} ${totalH}" aria-hidden="true">${svgLines}</svg>
+        <div class="t-bracket-flex">${colHtml}</div>
+      </div>
     </div>`;
 }
 
