@@ -1,7 +1,9 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { isBlobConfigured, putBlob, readBlobJson } from './blob.js';
-import { FIGHTERS_REGISTRY_BLOB } from './config.js';
+import { getSupabase, isSupabaseConfigured } from './supabase.js';
+import { portraitsSetupHint } from './portraits-storage.js';
+
+const LOCAL_REGISTRY = join(process.cwd(), 'data', 'fighters-registry.json');
 
 function loadBaseFighters() {
   try {
@@ -13,13 +15,53 @@ function loadBaseFighters() {
   }
 }
 
-async function loadRegistryOverlay() {
-  if (!isBlobConfigured()) {
-    return {};
+function wrapSupabaseError(error) {
+  if (!error) return error;
+  const msg = error.message || '';
+  const code = error.code || '';
+
+  if (code === 'PGRST205' || /fighter_portraits/i.test(msg)) {
+    return new Error(
+      'Table fighter_portraits introuvable. Exécutez supabase/schema.sql dans le SQL Editor Supabase.'
+    );
   }
 
-  const data = await readBlobJson(FIGHTERS_REGISTRY_BLOB);
-  return data?.fighters || {};
+  return error;
+}
+
+function loadRegistryOverlayLocal() {
+  if (!existsSync(LOCAL_REGISTRY)) return {};
+  try {
+    return JSON.parse(readFileSync(LOCAL_REGISTRY, 'utf-8')).fighters || {};
+  } catch {
+    return {};
+  }
+}
+
+function saveRegistryOverlayLocal(overlay) {
+  mkdirSync(join(process.cwd(), 'data'), { recursive: true });
+  writeFileSync(LOCAL_REGISTRY, JSON.stringify({ fighters: overlay }, null, 2), 'utf-8');
+}
+
+async function loadRegistryOverlaySupabase() {
+  const { data, error } = await getSupabase()
+    .from('fighter_portraits')
+    .select('name, image_url');
+
+  if (error) throw wrapSupabaseError(error);
+
+  const overlay = {};
+  for (const row of data || []) {
+    overlay[row.name] = { image: row.image_url };
+  }
+  return overlay;
+}
+
+async function loadRegistryOverlay() {
+  if (isSupabaseConfigured()) {
+    return loadRegistryOverlaySupabase();
+  }
+  return loadRegistryOverlayLocal();
 }
 
 export async function getFightersMap() {
@@ -28,15 +70,30 @@ export async function getFightersMap() {
   return { ...base, ...overlay };
 }
 
-export async function saveFighterPortrait(name, imageUrl) {
-  const current = await loadRegistryOverlay();
-  current[name] = { image: imageUrl };
+export async function saveFighterPortrait(name, imageUrl, storagePath = null) {
+  if (isSupabaseConfigured()) {
+    const { error } = await getSupabase()
+      .from('fighter_portraits')
+      .upsert(
+        {
+          name,
+          image_url: imageUrl,
+          storage_path: storagePath || imageUrl,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'name' }
+      );
 
-  await putBlob(
-    FIGHTERS_REGISTRY_BLOB,
-    JSON.stringify({ fighters: current }, null, 2),
-    'application/json'
-  );
+    if (error) throw wrapSupabaseError(error);
+    return imageUrl;
+  }
 
+  if (process.env.VERCEL) {
+    throw new Error(portraitsSetupHint());
+  }
+
+  const overlay = loadRegistryOverlayLocal();
+  overlay[name] = { image: imageUrl };
+  saveRegistryOverlayLocal(overlay);
   return imageUrl;
 }

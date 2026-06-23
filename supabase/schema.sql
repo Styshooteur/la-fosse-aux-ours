@@ -20,3 +20,38 @@ revoke all on public.tournaments from anon, authenticated;
 
 -- Recharge le cache API (évite l'erreur « Invalid path » juste après création)
 notify pgrst, 'reload schema';
+
+-- ── Portraits ────────────────────────────────────────────────────────────────
+
+create table if not exists public.fighter_portraits (
+  name text primary key,
+  image_url text not null,
+  storage_path text not null,
+  updated_at timestamptz not null default now()
+);
+
+alter table public.fighter_portraits enable row level security;
+revoke all on public.fighter_portraits from anon, authenticated;
+
+-- Bucket public (lecture directe des images sur le site)
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'portraits',
+  'portraits',
+  true,
+  5242880,
+  array['image/png', 'image/jpeg', 'image/webp', 'image/gif']
+)
+on conflict (id) do update set
+  public = excluded.public,
+  file_size_limit = excluded.file_size_limit,
+  allowed_mime_types = excluded.allowed_mime_types;
+
+-- Lecture publique des fichiers du bucket portraits
+drop policy if exists "Public read portraits bucket" on storage.objects;
+create policy "Public read portraits bucket"
+on storage.objects for select
+to public
+using (bucket_id = 'portraits');
+
+notify pgrst, 'reload schema';

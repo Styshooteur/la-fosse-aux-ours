@@ -1,12 +1,12 @@
 import { verifyPin } from '../_lib/admin.js';
-import {
-  blobSetupHint,
-  imageUrlForBlob,
-  isBlobConfigured,
-  putBlob,
-} from '../_lib/blob.js';
 import { saveFighterPortrait } from '../_lib/fighters-store.js';
+import {
+  isPortraitsStorageConfigured,
+  portraitsSetupHint,
+  uploadPortraitFile,
+} from '../_lib/portraits-storage.js';
 import { slugify } from '../_lib/slugify.js';
+import { formatStorageError } from '../_lib/storage-error.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -44,28 +44,20 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: "Impossible de décoder l'image." });
   }
 
-  if (!isBlobConfigured()) {
-    return res.status(503).json({ error: blobSetupHint() });
+  if (!isPortraitsStorageConfigured()) {
+    return res.status(503).json({ error: portraitsSetupHint() });
   }
 
   try {
-    const filename = `fighters/${slugify(fighterName)}.${ext}`;
-    const { blob, access } = await putBlob(
-      filename,
-      binary,
-      `image/${ext === 'jpg' ? 'jpeg' : ext}`
-    );
-    const imageUrl = imageUrlForBlob(blob, filename, access);
+    const storagePath = `fighters/${slugify(fighterName)}.${ext}`;
+    const contentType = `image/${ext === 'jpg' ? 'jpeg' : ext}`;
+    const imageUrl = await uploadPortraitFile(storagePath, binary, contentType);
 
-    await saveFighterPortrait(fighterName, imageUrl);
+    await saveFighterPortrait(fighterName, imageUrl, storagePath);
 
     res.setHeader('Cache-Control', 'no-store');
     return res.status(200).json({ ok: true, image: imageUrl });
   } catch (error) {
-    const msg = error.message || 'Erreur upload.';
-    if (/token|access denied|unauthorized/i.test(msg)) {
-      return res.status(500).json({ error: `${msg} — ${blobSetupHint()}` });
-    }
-    return res.status(500).json({ error: msg });
+    return res.status(500).json({ error: formatStorageError(error) });
   }
 }
