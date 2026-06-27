@@ -1,6 +1,7 @@
-import { CONFIG } from './config.js?v=20260620f';
-import { fetchLeaderboard, fetchFighterCards, gradeToClass } from './sheets.js?v=20260620f';
-import { initLiveEventsNav, activateLiveEventsPanel, deactivateLiveEventsPanel } from './events.js?v=20260625e';
+import { CONFIG } from './config.js?v=20260627a';
+import { fetchLeaderboard, fetchFighterCards, gradeToClass } from './sheets.js?v=20260627a';
+import { initLiveEventsNav, activateLiveEventsPanel, deactivateLiveEventsPanel } from './events.js?v=20260627a';
+import { escapeHtml } from './utils.js?v=20260627a';
 
 let fightersData = [];
 let fighterCards = {};
@@ -68,13 +69,6 @@ function renderGradeLegend(legend) {
     .join('');
 
   setVisible(section, true);
-}
-
-function escapeHtml(str) {
-  if (str === null || str === undefined) return '';
-  const div = document.createElement('div');
-  div.textContent = String(str);
-  return div.innerHTML;
 }
 
 const RANK_ONE_CROWN = `<span class="rank-crown" aria-hidden="true" title="Champion du classement">

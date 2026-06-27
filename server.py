@@ -5,6 +5,7 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 import base64
 import json
+import os
 import re
 import time
 import unicodedata
@@ -44,8 +45,12 @@ def save_json(path: Path, data) -> None:
 
 
 def verify_pin(pin: str) -> bool:
-    config = load_json(ADMIN_CONFIG, {'pin': 'ours-vendeaume'})
-    return pin == config.get('pin', 'ours-vendeaume')
+    env_pin = os.environ.get('ADMIN_PIN', '').strip()
+    if env_pin:
+        return pin == env_pin
+    config = load_json(ADMIN_CONFIG, {})
+    local_pin = config.get('pin', '')
+    return bool(local_pin) and pin == local_pin
 
 
 class Handler(SimpleHTTPRequestHandler):
@@ -256,6 +261,8 @@ class Handler(SimpleHTTPRequestHandler):
         parsed = urllib.parse.urlparse(self.path)
         params = urllib.parse.parse_qs(parsed.query)
         tournament_id = params.get('id', [None])[0]
+        pin = self.headers.get('X-Admin-Pin', '') or params.get('pin', [''])[0]
+        is_admin = verify_pin(pin)
 
         if tournament_id:
             path = TOURNAMENTS_DIR / f'{tournament_id}.json'
@@ -263,7 +270,17 @@ class Handler(SimpleHTTPRequestHandler):
                 self.send_json(404, {'error': 'Tournoi introuvable.'})
                 return
             tournament = load_json(path, None)
+            if not tournament or tournament.get('deleted'):
+                self.send_json(404, {'error': 'Tournoi introuvable.'})
+                return
+            if not is_admin and not tournament.get('broadcast'):
+                self.send_json(404, {'error': 'Tournoi introuvable.'})
+                return
             self.send_json(200, {'tournament': tournament})
+            return
+
+        if not is_admin:
+            self.send_json(403, {'error': 'Accès refusé.'})
             return
 
         entries = self.load_tournaments_index()

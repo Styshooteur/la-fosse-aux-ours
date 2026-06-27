@@ -3,7 +3,7 @@ import {
   listLiveTournamentsFull,
 } from '../_lib/tournaments-store.js';
 
-/** SSE temps réel — utilisé uniquement en local (server.py). Le site public en prod utilise un poll 60 s. */
+/** SSE temps réel — utilisé uniquement en local. En prod, poll 60 s côté client. */
 const STREAM_INTERVAL_MS = 3000;
 
 export const config = {

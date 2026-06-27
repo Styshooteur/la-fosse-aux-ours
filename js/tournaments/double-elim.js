@@ -341,7 +341,7 @@ export function rebuildDoubleElimLinks(tournament) {
       lbPrevRound = cross;
     }
 
-    if (lbPrevRound.length > 1 && lbRoundIndex < lbByRound.length) {
+    if (lbPrevRound?.length > 1 && lbRoundIndex < lbByRound.length) {
       const merge = lbByRound[lbRoundIndex];
       if (merge.length < lbPrevRound.length) {
         for (let i = 0; i < merge.length; i += 1) {

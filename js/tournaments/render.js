@@ -1,25 +1,9 @@
 import { participantById, participantName, displayParticipantName } from './utils.js';
 import { computeStandings } from './standings.js';
 import { STATUS } from './types.js';
-import {
-  computeBracketLayoutMetrics,
-  layoutBracketCenters,
-  centersToTops,
-  connectorPathFromCenters,
-} from './bracket-layout.js';
+import { escapeHtml, sanitizeHexColor } from '../utils.js';
 
-export function escapeHtml(str) {
-  const div = document.createElement('div');
-  div.textContent = str ?? '';
-  return div.innerHTML;
-}
-
-function bracketLabel(bracket) {
-  if (bracket === 'winner') return 'Vainqueurs';
-  if (bracket === 'loser') return 'Repêchage';
-  if (bracket === 'final') return 'Finale';
-  return bracket;
-}
+export { escapeHtml } from '../utils.js';
 
 function isFinalMatch(match) {
   return (
@@ -92,8 +76,8 @@ export function renderMatchCard(tournament, match, options = {}) {
   const avail = availability ?? getMatchAvailability(tournament, match);
   const pA = participantById(tournament, match.participantAId);
   const pB = participantById(tournament, match.participantBId);
-  const colorA = pA?.color || '#8f6118';
-  const colorB = pB?.color || '#495052';
+  const colorA = sanitizeHexColor(pA?.color);
+  const colorB = sanitizeHexColor(pB?.color, '#495052');
   const completed = match.status === 'completed';
   const waitingA = !match.participantAId;
   const waitingB = !match.participantBId;
@@ -175,7 +159,7 @@ export function renderStandingsTable(standings, { showBuchholz = false } = {}) {
       (s, i) => `
       <tr>
         <td>${i + 1}</td>
-        <td><span class="t-color-dot" style="background:${s.color || '#8f6118'}"></span> ${escapeHtml(s.name)}</td>
+        <td><span class="t-color-dot" style="background:${sanitizeHexColor(s.color)}"></span> ${escapeHtml(s.name)}</td>
         <td>${s.pts}</td>
         <td>${s.wins}</td>
         <td>${s.draws}</td>
@@ -318,34 +302,6 @@ export function renderEliminationBracket(tournament, bracketFilter = null, optio
   });
   if (!exportRoot) return tree;
   return `<div class="t-bracket-view" id="t-bracket-export">${tree}</div>`;
-}
-
-export function renderDoubleEliminationFinale(tournament) {
-  const lbMatches = tournament.state.matches.filter((m) => m.bracket === 'loser');
-  const grandFinal = tournament.state.matches.find((m) => m.bracket === 'final');
-
-  if (!lbMatches.length && !grandFinal) return '';
-
-  const maxLbRound = Math.max(...lbMatches.map((m) => m.round), 0);
-  const lastLbMatches = lbMatches.filter((m) => m.round === maxLbRound);
-
-  let html = '<section class="t-finals-section">';
-  if (lastLbMatches.length) {
-    html += `
-      <h4 class="t-subtitle">Finale du Loser Bracket</h4>
-      <div class="t-match-list t-finals-row">
-        ${lastLbMatches.map((m) => renderMatchCard(tournament, m)).join('')}
-      </div>`;
-  }
-  if (grandFinal) {
-    html += `
-      <h4 class="t-subtitle">Grande finale</h4>
-      <div class="t-match-list t-finals-row">
-        ${renderMatchCard(tournament, grandFinal)}
-      </div>`;
-  }
-  html += '</section>';
-  return html;
 }
 
 function getSwissRoundNumbers(tournament) {

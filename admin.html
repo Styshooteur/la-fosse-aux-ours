@@ -8,8 +8,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;1,400&family=MedievalSharp&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=20260620h">
-  <link rel="stylesheet" href="css/admin.css?v=20260626a">
+  <link rel="stylesheet" href="css/style.css?v=20260627a">
+  <link rel="stylesheet" href="css/admin.css?v=20260627a">
+  <link rel="stylesheet" href="css/tournaments.css?v=20260627a">
 </head>
 <body>
   <div class="bg-overlay"></div>
@@ -27,7 +28,7 @@
         <input type="password" id="admin-pin" placeholder="Entrez le code" autocomplete="current-password" />
         <button type="button" id="btn-auth">Accéder</button>
       </div>
-      <p class="admin-hint">Code par défaut : <code>ours-vendeaume</code> (modifiable dans <code>data/admin-config.json</code>)</p>
+      <p class="admin-hint">Le code administrateur est configuré sur Vercel (<code>ADMIN_PIN</code>). En local, copiez <code>data/admin-config.example.json</code> vers <code>data/admin-config.json</code>.</p>
     </section>
 
     <section class="admin-panel hidden" id="admin-panel">
@@ -145,6 +146,6 @@
     </div>
   </div>
 
-  <script type="module" src="js/admin.js?v=20260626a"></script>
+  <script type="module" src="js/admin.js?v=20260627a"></script>
 </body>
 </html>

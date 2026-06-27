@@ -1,12 +1,13 @@
-import { fetchLeaderboard, gradeToClass } from './sheets.js?v=20260620f';
+import { fetchLeaderboard, gradeToClass } from './sheets.js?v=20260627a';
 import { openPortraitEditor } from './portrait-editor.js';
 import {
   calculateEloMatch,
   formatPercent,
   formatModifier,
   formatDelta,
-} from './elo-calculator.js?v=20260620i';
-import { initTournamentsAdmin } from './tournaments/tournament-app.js?v=20260626a';
+} from './elo-calculator.js?v=20260627a';
+import { initTournamentsAdmin } from './tournaments/tournament-app.js?v=20260627a';
+import { escapeHtml } from './utils.js?v=20260627a';
 
 const PIN_KEY = 'fosse-admin-pin';
 const $ = (id) => document.getElementById(id);
@@ -179,12 +180,6 @@ async function deletePortrait(name) {
   }
 }
 
-function escapeHtml(str) {
-  const div = document.createElement('div');
-  div.textContent = str;
-  return div.innerHTML;
-}
-
 function switchTab(tabId) {
   document.querySelectorAll('.admin-tab').forEach((btn) => {
     const active = btn.dataset.tab === tabId;
@@ -328,8 +323,9 @@ function setupEloCalculator() {
 async function unlockAdmin(pin) {
   const valid = await verifyPin(pin);
   if (!valid) {
+    sessionStorage.removeItem(PIN_KEY);
     showStatus('Code administrateur incorrect.', true);
-    return;
+    return false;
   }
 
   setPin(pin);
@@ -346,6 +342,7 @@ async function unlockAdmin(pin) {
 
   await loadFighters();
   renderAdminList();
+  return true;
 }
 
 async function init() {
@@ -353,23 +350,8 @@ async function init() {
   setupEloCalculator();
 
   const savedPin = getPin();
-  if (savedPin) {
-    const valid = await verifyPin(savedPin);
-    if (valid) {
-      $('admin-auth').classList.add('hidden');
-      $('admin-panel').classList.remove('hidden');
-      if (!tournamentsAdmin) {
-        tournamentsAdmin = initTournamentsAdmin({
-          root: $('tournaments-root'),
-          getPin,
-          showStatus,
-        });
-      }
-      await loadFighters();
-      renderAdminList();
-      return;
-    }
-    sessionStorage.removeItem(PIN_KEY);
+  if (savedPin && (await unlockAdmin(savedPin))) {
+    return;
   }
 
   $('btn-auth').addEventListener('click', () => {

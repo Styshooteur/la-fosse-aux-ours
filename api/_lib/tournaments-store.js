@@ -3,11 +3,11 @@ import {
   writeFileSync,
   mkdirSync,
   existsSync,
-  readdirSync,
   unlinkSync,
 } from 'node:fs';
 import { join } from 'node:path';
 import { getSupabase, isSupabaseConfigured } from './supabase.js';
+import { assertSafeTournamentPath, validateTournamentId } from './tournament-validate.js';
 
 const LOCAL_DIR = join(process.cwd(), 'data', 'tournaments');
 const LOCAL_INDEX = join(process.cwd(), 'data', 'tournaments-index.json');
@@ -77,12 +77,18 @@ function saveIndexLocal(entries) {
 }
 
 function loadTournamentLocal(id) {
+  assertSafeTournamentPath(id, LOCAL_DIR);
   const path = join(LOCAL_DIR, `${id}.json`);
   if (!existsSync(path)) return null;
-  return JSON.parse(readFileSync(path, 'utf-8'));
+  try {
+    return JSON.parse(readFileSync(path, 'utf-8'));
+  } catch {
+    throw new Error(`Fichier tournoi corrompu : ${id}`);
+  }
 }
 
 function saveTournamentLocal(tournament) {
+  assertSafeTournamentPath(tournament.id, LOCAL_DIR);
   mkdirSync(LOCAL_DIR, { recursive: true });
   writeFileSync(
     join(LOCAL_DIR, `${tournament.id}.json`),
@@ -92,6 +98,7 @@ function saveTournamentLocal(tournament) {
 }
 
 function deleteTournamentLocal(id) {
+  assertSafeTournamentPath(id, LOCAL_DIR);
   const path = join(LOCAL_DIR, `${id}.json`);
   if (existsSync(path)) unlinkSync(path);
 }
@@ -106,6 +113,28 @@ async function listAllFromSupabase() {
 
   if (error) throw wrapSupabaseError(error);
   return (data || []).map((row) => row.data).filter((t) => t && !t.deleted);
+}
+
+async function listLiveBroadcastFromSupabase() {
+  const { data, error } = await getSupabase()
+    .from('tournaments')
+    .select('data')
+    .eq('data->>broadcast', 'true')
+    .order('updated_at', { ascending: false });
+
+  if (error) throw wrapSupabaseError(error);
+  return (data || []).map((row) => row.data).filter((t) => t && !t.deleted && isLiveTournament(t));
+}
+
+async function listLiveRevisionFromSupabase() {
+  const { data, error } = await getSupabase()
+    .from('tournaments')
+    .select('id, updated_at, data')
+    .eq('data->>broadcast', 'true')
+    .order('updated_at', { ascending: false });
+
+  if (error) throw wrapSupabaseError(error);
+  return (data || []).filter((row) => row.data && !row.data.deleted);
 }
 
 async function getTournamentFromSupabase(id) {
@@ -157,10 +186,12 @@ export async function getLiveTournamentsRevision() {
       .join('|');
   }
 
-  const tournaments = await listAllFromSupabase();
-  return tournaments
-    .filter(isLiveTournament)
-    .map((t) => `${t.id}:${t.updatedAt}:${Boolean(t.broadcast)}`)
+  const rows = await listLiveRevisionFromSupabase();
+  return rows
+    .map((row) => {
+      const updatedAt = row.data?.updatedAt || row.updated_at;
+      return `${row.id}:${updatedAt}:true`;
+    })
     .sort()
     .join('|');
 }
@@ -177,9 +208,9 @@ export async function listLiveTournamentsFull() {
     return tournaments;
   }
 
-  return (await listAllFromSupabase())
-    .filter(isLiveTournament)
-    .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+  return (await listLiveBroadcastFromSupabase()).sort(
+    (a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)
+  );
 }
 
 export async function listTournaments() {
@@ -191,6 +222,7 @@ export async function listTournaments() {
 }
 
 export async function getTournament(id) {
+  validateTournamentId(id);
   if (useLocalFiles()) {
     return loadTournamentLocal(id);
   }
@@ -217,6 +249,7 @@ export async function saveTournament(tournament) {
 
 export async function deleteTournament(id) {
   assertWritable();
+  validateTournamentId(id);
 
   if (useLocalFiles()) {
     deleteTournamentLocal(id);
@@ -225,17 +258,4 @@ export async function deleteTournament(id) {
   }
 
   await deleteTournamentFromSupabase(id);
-}
-
-export async function loadAllTournamentsLocal() {
-  if (useLocalFiles()) {
-    if (!existsSync(LOCAL_DIR)) return [];
-    const files = readdirSync(LOCAL_DIR).filter((f) => f.endsWith('.json'));
-    return files
-      .map((f) => JSON.parse(readFileSync(join(LOCAL_DIR, f), 'utf-8')))
-      .filter(Boolean)
-      .map(toSummary);
-  }
-
-  return listTournaments();
 }

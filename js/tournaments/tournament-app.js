@@ -28,13 +28,12 @@ import {
   exportBracketPng,
   renderSwissView,
 } from './render.js';
-import { renderDoubleEliminationView } from './render-double-elim.js?v=20260626a';
+import { renderDoubleEliminationView } from './render-double-elim.js?v=20260627a';
 
 export function initTournamentsAdmin({ root, getPin, showStatus }) {
   let view = 'list';
   let tournaments = [];
   let current = null;
-  let saveTimer = null;
   const editingMatchIds = new Set();
 
   root.innerHTML = `
@@ -57,21 +56,9 @@ export function initTournamentsAdmin({ root, getPin, showStatus }) {
     $detail.classList.toggle('hidden', name !== 'detail');
   }
 
-  async function autoSave() {
-    if (!current) return;
-    clearTimeout(saveTimer);
-    saveTimer = setTimeout(async () => {
-      try {
-        await persistTournament(current, getPin());
-      } catch (err) {
-        showStatus(err.message, true);
-      }
-    }, 1500);
-  }
-
   async function loadList() {
     try {
-      tournaments = await fetchTournaments();
+      tournaments = await fetchTournaments(getPin());
     } catch (err) {
       tournaments = [];
       showStatus(err.message || 'Impossible de charger la liste des tournois.', true);
@@ -129,12 +116,20 @@ export function initTournamentsAdmin({ root, getPin, showStatus }) {
         const id = btn.dataset.id;
         const action = btn.dataset.action;
         if (action === 'resume') {
-          current = await fetchTournament(id);
+          current = await fetchTournament(id, getPin());
+          if (!current) {
+            showStatus('Tournoi introuvable.', true);
+            return;
+          }
           refreshDerivedState(current);
           renderDetail();
           showView('detail');
         } else if (action === 'duplicate') {
-          const source = await fetchTournament(id);
+          const source = await fetchTournament(id, getPin());
+          if (!source) {
+            showStatus('Tournoi introuvable.', true);
+            return;
+          }
           current = duplicateTournament(source);
           await persistTournament(current, getPin());
           showStatus('Tournoi dupliqué.');
@@ -153,7 +148,12 @@ export function initTournamentsAdmin({ root, getPin, showStatus }) {
         const id = e.target.dataset.id;
         const enabled = e.target.checked;
         try {
-          const tournament = await fetchTournament(id);
+          const tournament = await fetchTournament(id, getPin());
+          if (!tournament) {
+            e.target.checked = !enabled;
+            showStatus('Tournoi introuvable.', true);
+            return;
+          }
           tournament.broadcast = enabled;
           tournament.updatedAt = nowIso();
           await persistTournament(tournament, getPin());

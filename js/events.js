@@ -1,13 +1,15 @@
 import { renderLiveEventsPage } from './tournaments/render-public.js';
 import { liveTournamentsSignature } from './tournaments/live-sync.js';
 
-/** Intervalle entre actualisations automatiques (onglet visible). */
-const POLL_MS = 120_000;
-/** SSE uniquement en dev local (server.py) — pas de quota Blob/Supabase en boucle. */
+/** Intervalle entre actualisations automatiques en production (onglet visible). */
+const POLL_MS = 60_000;
+/** SSE uniquement en dev local — en prod, poll léger ci-dessus. */
 const SSE_ENABLED = ['localhost', '127.0.0.1'].includes(location.hostname);
+const SSE_MAX_RETRIES = 5;
 
 let stream = null;
 let pollTimer = null;
+let sseRetries = 0;
 let lastSig = '';
 let lastHasLive = null;
 let panelActive = false;
@@ -37,12 +39,12 @@ function setLiveNavIndicator(hasLive) {
   nav?.classList.toggle('site-nav-btn--live', hasLive);
 }
 
-function renderPanelContent(tournaments) {
+function renderPanelContent(tournaments, { force = false } = {}) {
   const container = $('live-events-root');
   if (!container || !panelActive) return;
 
   const sig = liveTournamentsSignature(tournaments);
-  if (sig === lastSig) return;
+  if (!force && sig === lastSig) return;
   lastSig = sig;
 
   try {
@@ -54,10 +56,10 @@ function renderPanelContent(tournaments) {
   }
 }
 
-function applyTournaments(tournaments) {
+function applyTournaments(tournaments, options = {}) {
   cachedTournaments = tournaments;
   setLiveNavIndicator(tournaments.length > 0);
-  renderPanelContent(tournaments);
+  renderPanelContent(tournaments, options);
 }
 
 async function fetchLiveTournaments() {
@@ -104,13 +106,26 @@ function stopStream() {
   }
 }
 
+function scheduleSseReconnect() {
+  if (sseRetries >= SSE_MAX_RETRIES) {
+    startPolling();
+    return;
+  }
+  sseRetries += 1;
+  const delay = Math.min(1000 * sseRetries, 10_000);
+  setTimeout(() => connectLocalStream(), delay);
+}
+
 function connectLocalStream() {
   if (!SSE_ENABLED || typeof EventSource === 'undefined') return;
 
   stopStream();
   try {
     stream = new EventSource('/api/tournaments/stream');
-    stream.onopen = () => setStatus('', false);
+    stream.onopen = () => {
+      sseRetries = 0;
+      setStatus('', false);
+    };
     stream.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
@@ -122,21 +137,27 @@ function connectLocalStream() {
     };
     stream.onerror = () => {
       stopStream();
-      startPolling();
+      scheduleSseReconnect();
     };
   } catch {
     startPolling();
   }
 }
 
-export async function refreshLiveEvents() {
+export async function refreshLiveEvents({ force = false } = {}) {
   const btn = $('live-events-refresh');
   if (btn) btn.disabled = true;
 
   try {
-    applyTournaments(await fetchLiveTournaments());
-    setStatus('Mis à jour à ' + new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }), true);
-    setTimeout(() => setStatus('', false), 2500);
+    applyTournaments(await fetchLiveTournaments(), { force });
+    if (force) {
+      setStatus(
+        'Mis à jour à ' +
+          new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+        true
+      );
+      setTimeout(() => setStatus('', false), 2500);
+    }
   } catch {
     setStatus('Impossible de charger les événements.', true);
   } finally {
@@ -153,10 +174,14 @@ function onVisibilityChange() {
   }
 }
 
-/** Indicateur nav + polling léger — démarré au chargement du site. */
+/** Indicateur nav + polling — démarré au chargement du site. */
 export async function initLiveEventsNav() {
   if (navStarted) return;
   navStarted = true;
+
+  $('live-events-refresh')?.addEventListener('click', () => {
+    refreshLiveEvents({ force: true });
+  });
 
   try {
     applyTournaments(await fetchLiveTournaments());

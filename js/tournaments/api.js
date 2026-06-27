@@ -1,12 +1,23 @@
-export async function fetchTournaments() {
-  const response = await fetch('/api/tournaments');
-  if (!response.ok) throw new Error('Impossible de charger les tournois.');
+function adminHeaders(pin) {
+  const headers = { 'Cache-Control': 'no-store' };
+  if (pin) headers['X-Admin-Pin'] = pin;
+  return headers;
+}
+
+export async function fetchTournaments(pin) {
+  const response = await fetch('/api/tournaments', { headers: adminHeaders(pin) });
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data.error || 'Impossible de charger les tournois.');
+  }
   const data = await response.json();
   return data.tournaments || [];
 }
 
-export async function fetchTournament(id) {
-  const response = await fetch(`/api/tournaments?id=${encodeURIComponent(id)}`);
+export async function fetchTournament(id, pin) {
+  const response = await fetch(`/api/tournaments?id=${encodeURIComponent(id)}`, {
+    headers: adminHeaders(pin),
+  });
   if (!response.ok) throw new Error('Tournoi introuvable.');
   const data = await response.json();
   return data.tournament;
@@ -15,7 +26,7 @@ export async function fetchTournament(id) {
 export async function saveTournament(tournament, pin) {
   const response = await fetch('/api/tournaments', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...adminHeaders(pin) },
     body: JSON.stringify({ pin, tournament }),
   });
   const data = await response.json();
@@ -26,7 +37,7 @@ export async function saveTournament(tournament, pin) {
 export async function deleteTournament(id, pin) {
   const response = await fetch('/api/tournaments', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...adminHeaders(pin) },
     body: JSON.stringify({ pin, action: 'delete', id }),
   });
   const data = await response.json();

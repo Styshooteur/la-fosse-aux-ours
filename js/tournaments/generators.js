@@ -267,12 +267,17 @@ export function generateSwissRound(tournament, roundNumber) {
   );
 
   let pairings;
+  let round1ByeId = null;
 
   if (roundNumber === 1) {
     const pool = shuffle(participants.map((p) => p.id));
     pairings = [];
     for (let i = 0; i < pool.length; i += 2) {
-      if (pool[i + 1]) pairings.push([pool[i], pool[i + 1]]);
+      if (pool[i + 1]) {
+        pairings.push([pool[i], pool[i + 1]]);
+      } else {
+        round1ByeId = pool[i];
+      }
     }
   } else {
     const fake = { participants: tournament.participants, state: { matches: allPrevious } };
@@ -280,11 +285,27 @@ export function generateSwissRound(tournament, roundNumber) {
     pairings = swissPairByScoreGroups(standingsList, playedPairs);
   }
 
-  return pairings.map(([participantAId, participantBId]) =>
+  const matches = pairings.map(([participantAId, participantBId]) =>
     createEmptyMatch(roundNumber, `Ronde ${roundNumber}`, null, {
       swissRound: roundNumber,
       participantAId,
       participantBId,
     })
   );
+
+  if (round1ByeId) {
+    matches.push(
+      createEmptyMatch(roundNumber, `Ronde ${roundNumber}`, null, {
+        swissRound: roundNumber,
+        participantAId: round1ByeId,
+        participantBId: null,
+        scoreA: 1,
+        scoreB: 0,
+        winnerId: round1ByeId,
+        status: 'completed',
+      })
+    );
+  }
+
+  return matches;
 }
