@@ -94,19 +94,28 @@ body {
 
 /* ── Hero ── */
 
+.site-frame {
+  max-width: 1180px;
+  width: 100%;
+  margin: 0 auto;
+  border: 2px solid var(--ink);
+  outline: 1px solid var(--gold-antique);
+  outline-offset: 0;
+  box-shadow: var(--shadow-deep);
+}
+
 .hero {
   text-align: center;
   padding: 3.5rem 1.5rem 2.5rem;
   position: relative;
-  margin: 1.5rem 1.5rem 0;
-  border: 2px solid var(--ink);
-  outline: 1px solid var(--gold-antique);
-  outline-offset: 4px;
+  margin: 0;
+  border: none;
+  outline: none;
   background:
     var(--paper-speckle),
     var(--paper-fiber),
     var(--paper-base);
-  box-shadow: var(--shadow-deep);
+  box-shadow: none;
 }
 
 .hero::before,
@@ -208,18 +217,18 @@ body {
 /* ── Layout ── */
 
 .container {
-  max-width: 1180px;
-  margin: 0 auto;
+  max-width: none;
+  width: 100%;
+  margin: 0;
   padding: 2rem 1.5rem 4rem;
   background:
     var(--paper-speckle),
     var(--paper-fiber),
     var(--paper-solid);
-  border: 2px solid var(--ink);
-  outline: 1px solid var(--gold-antique);
-  outline-offset: 4px;
-  box-shadow: var(--shadow-deep);
-  border-radius: 2px;
+  border: none;
+  outline: none;
+  box-shadow: none;
+  border-radius: 0;
 }
 
 /* ── Stats Panel ── */

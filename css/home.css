@@ -37,7 +37,6 @@ body.page-home-active .page-below-hero main.container {
   position: relative;
   z-index: 1;
   background: transparent;
-  border-color: rgba(28, 18, 8, 0.45);
   box-shadow: none;
 }
 
