@@ -4,12 +4,42 @@ import { initLiveEventsNav, activateLiveEventsPanel, deactivateLiveEventsPanel }
 import { initHome, activateHomePanel, deactivateHomePanel } from './home.js?v=20260630a';
 import { escapeHtml } from './utils.js?v=20260630a';
 
-let fightersData = [];
+let allFightersData = [];
 let fighterCards = {};
 let refreshTimer = null;
 let activePanel = 'home';
 
 const $ = (id) => document.getElementById(id);
+
+function normalizeSearch(str) {
+  return String(str || '')
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .toLowerCase();
+}
+
+function getLeaderboardSearchQuery() {
+  return $('leaderboard-search')?.value ?? '';
+}
+
+function updateSearchClearButton() {
+  const clearBtn = $('leaderboard-search-clear');
+  const input = $('leaderboard-search');
+  if (!clearBtn || !input) return;
+  const hasText = input.value.length > 0;
+  clearBtn.classList.toggle('hidden', !hasText);
+  clearBtn.hidden = !hasText;
+}
+
+function filterFightersBySearch(fighters, query) {
+  const needle = normalizeSearch(query.trim());
+  if (!needle) {
+    return fighters.map((fighter, index) => ({ fighter, index }));
+  }
+  return fighters
+    .map((fighter, index) => ({ fighter, index }))
+    .filter(({ fighter }) => normalizeSearch(fighter.combattant).includes(needle));
+}
 
 function formatTime(date) {
   return date.toLocaleString('fr-FR', {
@@ -90,16 +120,21 @@ const RANK_ONE_CROWN = `<span class="rank-crown" aria-hidden="true" title="Champ
   </svg>
 </span>`;
 
-function renderLeaderboard(fighters) {
-  fightersData = fighters;
+function renderLeaderboardRows(entries) {
   const tbody = $('leaderboard-body');
-  tbody.innerHTML = fighters
-    .map(
-      (f, i) => {
-        const gradeClass = gradeToClass(f.grade);
-        const isFirst = Number(f.rang) === 1;
-        const crown = isFirst ? RANK_ONE_CROWN : '';
-        return `
+
+  if (!entries.length) {
+    tbody.innerHTML =
+      '<tr><td colspan="9" class="leaderboard-empty">Aucun combattant trouvé</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = entries
+    .map(({ fighter: f, index: i }) => {
+      const gradeClass = gradeToClass(f.grade);
+      const isFirst = Number(f.rang) === 1;
+      const crown = isFirst ? RANK_ONE_CROWN : '';
+      return `
     <tr>
       <td>${escapeHtml(String(f.rang))}</td>
       <td class="grade-cell"><span class="grade-badge ${gradeClass}">${escapeHtml(f.grade)}</span></td>
@@ -115,8 +150,7 @@ function renderLeaderboard(fighters) {
       <td>${escapeHtml(String(f.winPct))}</td>
       <td>${escapeHtml(f.actif)}</td>
     </tr>`;
-      }
-    )
+    })
     .join('');
 
   tbody.querySelectorAll('.fighter-link').forEach((btn) => {
@@ -124,8 +158,20 @@ function renderLeaderboard(fighters) {
   });
 }
 
+function applyLeaderboardFilter() {
+  if (!allFightersData.length) return;
+  const entries = filterFightersBySearch(allFightersData, getLeaderboardSearchQuery());
+  renderLeaderboardRows(entries);
+  updateSearchClearButton();
+}
+
+function renderLeaderboard(fighters) {
+  allFightersData = fighters;
+  applyLeaderboardFilter();
+}
+
 function openFighterCard(index) {
-  const fighter = fightersData[index];
+  const fighter = allFightersData[index];
   if (!fighter) return;
 
   const name = fighter.combattant;
@@ -230,6 +276,19 @@ function switchPanel(panel) {
 
 function setupEventListeners() {
   $('btn-refresh')?.addEventListener('click', loadData);
+
+  const searchInput = $('leaderboard-search');
+  const searchClear = $('leaderboard-search-clear');
+
+  searchInput?.addEventListener('input', applyLeaderboardFilter);
+
+  searchClear?.addEventListener('click', () => {
+    if (!searchInput) return;
+    searchInput.value = '';
+    searchInput.focus();
+    applyLeaderboardFilter();
+  });
+
   $('card-close')?.addEventListener('click', closeFighterCard);
   $('fighter-modal')?.addEventListener('click', (e) => {
     if (e.target === $('fighter-modal')) closeFighterCard();

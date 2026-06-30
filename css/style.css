@@ -313,6 +313,70 @@ body {
   letter-spacing: 0.06em;
 }
 
+.section-header--leaderboard {
+  gap: 0.75rem 1rem;
+}
+
+.leaderboard-search-wrap {
+  position: relative;
+  flex: 1 1 11rem;
+  max-width: 22rem;
+  min-width: 9rem;
+}
+
+.leaderboard-search {
+  width: 100%;
+  font-family: var(--font-body);
+  font-size: 1rem;
+  color: var(--ink);
+  background: rgba(255, 252, 242, 0.85);
+  border: 1.5px solid var(--ink);
+  padding: 0.45rem 2.1rem 0.45rem 0.75rem;
+  box-shadow: inset 0 1px 2px rgba(60, 40, 25, 0.06);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.leaderboard-search::placeholder {
+  color: var(--ink-muted);
+  font-style: italic;
+}
+
+.leaderboard-search:focus {
+  outline: none;
+  border-color: var(--crimson);
+  box-shadow: inset 0 1px 2px rgba(60, 40, 25, 0.06), 0 0 0 2px rgba(122, 26, 26, 0.15);
+}
+
+.leaderboard-search-clear {
+  position: absolute;
+  right: 0.3rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1.65rem;
+  height: 1.65rem;
+  padding: 0;
+  border: none;
+  border-radius: 2px;
+  background: transparent;
+  color: var(--ink-muted);
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: color 0.2s, background 0.2s;
+}
+
+.leaderboard-search-clear:hover {
+  color: var(--crimson);
+  background: rgba(122, 26, 26, 0.08);
+}
+
+.leaderboard-empty {
+  text-align: center;
+  font-style: italic;
+  color: var(--ink-muted);
+  padding: 2rem 1rem !important;
+}
+
 .section-note {
   font-size: 0.95rem;
   color: var(--ink);
@@ -1079,6 +1143,16 @@ body {
 @media (max-width: 700px) {
   .hero {
     margin: 1rem 0.75rem 0;
+  }
+
+  .section-header--leaderboard .leaderboard-search-wrap {
+    flex: 1 1 100%;
+    max-width: none;
+    order: 3;
+  }
+
+  .section-header--leaderboard .btn-refresh {
+    margin-left: auto;
   }
 
   .leaderboard {
