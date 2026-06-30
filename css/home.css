@@ -1,0 +1,169 @@
+/* Page d'accueil — statut arène & horaires */
+
+body.page-home-active .bg-overlay {
+  opacity: 0;
+}
+
+body.page-home-active .home-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+}
+
+body.page-home-active .home-section {
+  margin: 0 -1rem;
+  min-height: calc(100vh - 12rem);
+}
+
+.home-section {
+  position: relative;
+  margin: 0 -1rem;
+  padding: 0;
+  min-height: 28rem;
+  border: none;
+  background: transparent;
+  overflow: hidden;
+  border-radius: 2px;
+}
+
+.home-bg {
+  position: absolute;
+  inset: 0;
+  background:
+    url('../assets/accueil-bg.jpg') center center / cover no-repeat,
+    url('../assets/accueil-bg.svg') center center / cover no-repeat,
+    linear-gradient(180deg, #d4bc8e 0%, #b89868 100%);
+  z-index: 0;
+}
+
+.home-bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(28, 18, 8, 0.35) 0%,
+    rgba(28, 18, 8, 0.5) 45%,
+    rgba(28, 18, 8, 0.62) 100%
+  );
+}
+
+.home-content {
+  position: relative;
+  z-index: 1;
+  max-width: 36rem;
+  margin: 0 auto;
+  padding: 2.5rem 1.5rem 3rem;
+}
+
+.home-status {
+  display: block;
+  text-align: center;
+  font-family: var(--font-display);
+  font-size: clamp(1.35rem, 4vw, 1.85rem);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 1.1rem 1.25rem;
+  margin-bottom: 2rem;
+  border: 3px solid var(--ink);
+  outline: 2px solid var(--gold-antique);
+  outline-offset: 3px;
+  box-shadow: var(--shadow-deep);
+  transition: background 0.35s, color 0.35s, border-color 0.35s;
+}
+
+.home-status--open {
+  background: linear-gradient(180deg, rgba(47, 150, 86, 0.92), rgba(35, 120, 68, 0.95));
+  color: #f5fff8;
+  border-color: #1a5c34;
+  outline-color: #7fd4a0;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
+.home-status--closed {
+  background: linear-gradient(180deg, rgba(90, 70, 55, 0.92), rgba(60, 45, 35, 0.95));
+  color: #f0e8dc;
+  border-color: var(--ink);
+  outline-color: var(--gold-antique);
+}
+
+.home-hours-card {
+  padding: 1.5rem 1.35rem 1.75rem;
+  border: 2px solid var(--ink);
+  outline: 1px solid var(--gold-antique);
+  outline-offset: 4px;
+  background:
+    var(--paper-speckle),
+    var(--paper-fiber),
+    linear-gradient(
+      175deg,
+      rgba(255, 248, 230, 0.94) 0%,
+      rgba(235, 215, 175, 0.96) 50%,
+      rgba(220, 195, 150, 0.94) 100%
+    );
+  box-shadow: var(--shadow-parchment);
+}
+
+.home-hours-title {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink);
+  text-align: center;
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.65rem;
+  border-bottom: 1px solid rgba(60, 40, 25, 0.2);
+}
+
+.home-hours-list {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.home-hours-row {
+  display: grid;
+  grid-template-columns: 6.5rem 1fr;
+  gap: 0.75rem;
+  align-items: baseline;
+  font-size: 1.05rem;
+}
+
+.home-hours-day {
+  font-family: var(--font-display);
+  font-size: 0.82rem;
+  letter-spacing: 0.06em;
+  color: var(--ink-soft);
+  margin: 0;
+}
+
+.home-hours-times {
+  margin: 0;
+  color: var(--ink);
+}
+
+.home-hours-error {
+  text-align: center;
+  color: var(--crimson);
+  font-style: italic;
+}
+
+.home-tagline {
+  text-align: center;
+  margin-top: 1.25rem;
+  font-style: italic;
+  color: rgba(255, 248, 230, 0.88);
+  font-size: 1rem;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+}
+
+@media (max-width: 520px) {
+  .home-hours-row {
+    grid-template-columns: 1fr;
+    gap: 0.15rem;
+  }
+
+  .home-content {
+    padding: 1.75rem 1rem 2.5rem;
+  }
+}

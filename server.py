@@ -22,6 +22,7 @@ ADMIN_CONFIG = ROOT / 'data' / 'admin-config.json'
 FIGHTERS_DIR = ROOT / 'assets' / 'fighters'
 TOURNAMENTS_DIR = ROOT / 'data' / 'tournaments'
 TOURNAMENTS_INDEX = ROOT / 'data' / 'tournaments-index.json'
+OPENING_HOURS_JSON = ROOT / 'data' / 'opening-hours.json'
 
 
 def slugify(name: str) -> str:
@@ -70,6 +71,12 @@ class Handler(SimpleHTTPRequestHandler):
         if self.path == '/api/tournaments/stream' or self.path.startswith('/api/tournaments/stream?'):
             self.serve_tournaments_stream()
             return
+        if self.path == '/api/opening-hours/public' or self.path.startswith('/api/opening-hours/public?'):
+            self.serve_opening_hours_public()
+            return
+        if self.path == '/api/opening-hours' or self.path.startswith('/api/opening-hours?'):
+            self.serve_opening_hours_admin_get()
+            return
         super().do_GET()
 
     def end_headers(self):
@@ -96,6 +103,8 @@ class Handler(SimpleHTTPRequestHandler):
             self.handle_delete_portrait(payload)
         elif self.path == '/api/tournaments':
             self.handle_tournaments_post(payload)
+        elif self.path == '/api/opening-hours':
+            self.handle_opening_hours_post(payload)
         else:
             self.send_json(404, {'error': 'Route introuvable.'})
 
@@ -233,6 +242,98 @@ class Handler(SimpleHTTPRequestHandler):
 
     def serve_tournaments_public(self):
         self.send_json(200, {'tournaments': self.load_live_tournaments_full()})
+
+    WEEKDAY_KEYS = [
+        'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday',
+    ]
+    TIME_RE = re.compile(r'^([01]\d|2[0-3]):([0-5]\d)$')
+
+    def default_schedule(self):
+        return {key: {'open': False, 'slots': []} for key in self.WEEKDAY_KEYS}
+
+    def load_opening_hours(self):
+        data = load_json(OPENING_HOURS_JSON, None)
+        if not data:
+            return {'schedule': self.default_schedule(), 'updatedAt': None}
+        return {
+            'schedule': data.get('schedule') or self.default_schedule(),
+            'updatedAt': data.get('updatedAt'),
+        }
+
+    def parse_slot(self, slot):
+        if not isinstance(slot, dict):
+            return None
+        start = str(slot.get('start', '')).strip()
+        end = str(slot.get('end', '')).strip()
+        if not self.TIME_RE.match(start) or not self.TIME_RE.match(end):
+            return None
+        sh, sm = map(int, start.split(':'))
+        eh, em = map(int, end.split(':'))
+        start_min = sh * 60 + sm
+        end_min = eh * 60 + em
+        if end_min <= start_min:
+            return None
+        return {'start': start, 'end': end}
+
+    def sanitize_schedule(self, schedule):
+        if not isinstance(schedule, dict):
+            raise ValueError('Horaires invalides.')
+
+        result = {}
+        for key in self.WEEKDAY_KEYS:
+            day = schedule.get(key)
+            if not isinstance(day, dict):
+                result[key] = {'open': False, 'slots': []}
+                continue
+
+            if not day.get('open'):
+                result[key] = {'open': False, 'slots': []}
+                continue
+
+            raw_slots = day.get('slots') if isinstance(day.get('slots'), list) else []
+            slots = [slot for slot in (self.parse_slot(item) for item in raw_slots) if slot]
+            if not slots:
+                raise ValueError(f'Au moins une tranche horaire est requise pour {key}.')
+            result[key] = {'open': True, 'slots': slots}
+
+        return result
+
+    def save_opening_hours(self, schedule):
+        sanitized = self.sanitize_schedule(schedule)
+        payload = {
+            'schedule': sanitized,
+            'updatedAt': time.strftime('%Y-%m-%dT%H:%M:%S.000Z', time.gmtime()),
+        }
+        OPENING_HOURS_JSON.parent.mkdir(parents=True, exist_ok=True)
+        save_json(OPENING_HOURS_JSON, payload)
+        return payload
+
+    def serve_opening_hours_public(self):
+        self.send_json(200, self.load_opening_hours())
+
+    def serve_opening_hours_admin_get(self):
+        pin = self.headers.get('X-Admin-Pin', '')
+        if not verify_pin(pin):
+            self.send_json(403, {'error': 'Accès refusé.'})
+            return
+        self.send_json(200, self.load_opening_hours())
+
+    def handle_opening_hours_post(self, payload):
+        pin = payload.get('pin', '') or self.headers.get('X-Admin-Pin', '')
+        if not verify_pin(pin):
+            self.send_json(403, {'error': 'Code administrateur incorrect.'})
+            return
+
+        schedule = payload.get('schedule')
+        if not schedule:
+            self.send_json(400, {'error': 'Horaires manquants.'})
+            return
+
+        try:
+            saved = self.save_opening_hours(schedule)
+            self.send_json(200, {'ok': True, **saved})
+        except ValueError as exc:
+            self.send_json(400, {'error': str(exc)})
 
     def serve_tournaments_stream(self):
         self.send_response(200)

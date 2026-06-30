@@ -6,8 +6,9 @@ import {
   formatModifier,
   formatDelta,
 } from './elo-calculator.js?v=20260627a';
-import { initTournamentsAdmin } from './tournaments/tournament-app.js?v=20260627a';
-import { escapeHtml } from './utils.js?v=20260627a';
+import { initTournamentsAdmin } from './tournaments/tournament-app.js?v=20260630a';
+import { initOpeningHoursAdmin } from './opening-hours/admin.js?v=20260630a';
+import { escapeHtml } from './utils.js?v=20260630a';
 
 const PIN_KEY = 'fosse-admin-pin';
 const $ = (id) => document.getElementById(id);
@@ -17,6 +18,7 @@ let portraits = {};
 let customPortraits = new Set();
 let selectedWinner = null;
 let tournamentsAdmin = null;
+let openingHoursAdmin = null;
 
 function showStatus(message, isError = false) {
   const el = $('admin-status');
@@ -190,11 +192,16 @@ function switchTab(tabId) {
   document.querySelectorAll('.admin-tab-panel').forEach((panel) => {
     const show =
       (tabId === 'portraits' && panel.id === 'tab-portraits') ||
+      (tabId === 'hours' && panel.id === 'tab-hours') ||
       (tabId === 'tournaments' && panel.id === 'tab-tournaments') ||
       (tabId === 'elo' && panel.id === 'tab-elo');
     panel.classList.toggle('hidden', !show);
     panel.hidden = !show;
   });
+
+  if (tabId === 'hours' && openingHoursAdmin) {
+    openingHoursAdmin.open();
+  }
 
   if (tabId === 'tournaments' && tournamentsAdmin) {
     tournamentsAdmin.open();
@@ -335,6 +342,14 @@ async function unlockAdmin(pin) {
   if (!tournamentsAdmin) {
     tournamentsAdmin = initTournamentsAdmin({
       root: $('tournaments-root'),
+      getPin,
+      showStatus,
+    });
+  }
+
+  if (!openingHoursAdmin) {
+    openingHoursAdmin = initOpeningHoursAdmin({
+      root: $('opening-hours-root'),
       getPin,
       showStatus,
     });

@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#8a7358"/>
+      <stop offset="45%" stop-color="#c4a574"/>
+      <stop offset="100%" stop-color="#6b4e32"/>
+    </linearGradient>
+    <radialGradient id="arenaGlow" cx="50%" cy="70%" r="55%">
+      <stop offset="0%" stop-color="#f0d9a0" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#2a1810" stop-opacity="0.2"/>
+    </radialGradient>
+    <linearGradient id="sand" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#d4bc8e"/>
+      <stop offset="100%" stop-color="#a88858"/>
+    </linearGradient>
+  </defs>
+  <rect width="1920" height="1080" fill="url(#sky)"/>
+  <ellipse cx="960" cy="920" rx="780" ry="220" fill="url(#sand)" opacity="0.9"/>
+  <ellipse cx="960" cy="780" rx="520" ry="140" fill="url(#arenaGlow)"/>
+  <path fill="#3d2418" opacity="0.85" d="M0 520 Q240 380 480 420 T960 400 T1440 420 T1920 520 L1920 1080 L0 1080 Z"/>
+  <path fill="none" stroke="#1a0e08" stroke-width="3" opacity="0.35" d="M120 560 Q480 460 960 450 Q1440 460 1800 560"/>
+  <path fill="none" stroke="#8b6914" stroke-width="2" opacity="0.4" d="M200 600 Q560 500 960 490 Q1360 500 1720 600"/>
+  <g fill="#2a1810" opacity="0.7">
+    <rect x="80" y="300" width="60" height="280" rx="4"/>
+    <rect x="1780" y="300" width="60" height="280" rx="4"/>
+    <rect x="260" y="360" width="48" height="220" rx="3"/>
+    <rect x="1612" y="360" width="48" height="220" rx="3"/>
+  </g>
+  <g fill="#7a1a1a" opacity="0.25">
+    <path d="M860 180 L960 120 L1060 180 L1040 260 H880 Z"/>
+    <path d="M420 220 L480 170 L540 220 L520 290 H440 Z"/>
+    <path d="M1380 220 L1440 170 L1500 220 L1480 290 H1400 Z"/>
+  </g>
+</svg>

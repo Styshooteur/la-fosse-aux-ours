@@ -1,12 +1,13 @@
-import { CONFIG } from './config.js?v=20260627a';
-import { fetchLeaderboard, fetchFighterCards, gradeToClass } from './sheets.js?v=20260627a';
-import { initLiveEventsNav, activateLiveEventsPanel, deactivateLiveEventsPanel } from './events.js?v=20260627a';
-import { escapeHtml } from './utils.js?v=20260627a';
+import { CONFIG } from './config.js?v=20260630a';
+import { fetchLeaderboard, fetchFighterCards, gradeToClass } from './sheets.js?v=20260630a';
+import { initLiveEventsNav, activateLiveEventsPanel, deactivateLiveEventsPanel } from './events.js?v=20260630a';
+import { initHome, activateHomePanel, deactivateHomePanel } from './home.js?v=20260630a';
+import { escapeHtml } from './utils.js?v=20260630a';
 
 let fightersData = [];
 let fighterCards = {};
 let refreshTimer = null;
-let activePanel = 'leaderboard';
+let activePanel = 'home';
 
 const $ = (id) => document.getElementById(id);
 
@@ -196,21 +197,32 @@ async function loadData() {
 
 function switchPanel(panel) {
   activePanel = panel;
+  const home = $('panel-home');
   const leaderboard = $('panel-leaderboard');
   const events = $('panel-events');
+  const navHome = $('nav-home');
   const navLeaderboard = $('nav-leaderboard');
   const navEvents = $('nav-events');
 
+  if (home) home.classList.toggle('hidden', panel !== 'home');
   if (leaderboard) leaderboard.classList.toggle('hidden', panel !== 'leaderboard');
   if (events) events.classList.toggle('hidden', panel !== 'events');
+  navHome?.classList.toggle('site-nav-btn--active', panel === 'home');
   navLeaderboard?.classList.toggle('site-nav-btn--active', panel === 'leaderboard');
   navEvents?.classList.toggle('site-nav-btn--active', panel === 'events');
 
-  if (panel === 'events') {
+  if (panel === 'home') {
+    activateHomePanel();
+    deactivateLiveEventsPanel();
+  } else if (panel === 'events') {
+    deactivateHomePanel();
     activateLiveEventsPanel();
   } else {
+    deactivateHomePanel();
     deactivateLiveEventsPanel();
   }
+
+  document.body.classList.toggle('page-home-active', panel === 'home');
 }
 
 function setupEventListeners() {
@@ -238,7 +250,8 @@ function startAutoRefresh() {
 
 async function init() {
   setupEventListeners();
-  switchPanel('leaderboard');
+  switchPanel('home');
+  initHome();
   initLiveEventsNav();
   await loadData();
   startAutoRefresh();

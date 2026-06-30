@@ -1,0 +1,12 @@
+{
+  "schedule": {
+    "monday": { "open": false, "slots": [] },
+    "tuesday": { "open": false, "slots": [] },
+    "wednesday": { "open": false, "slots": [] },
+    "thursday": { "open": false, "slots": [] },
+    "friday": { "open": true, "slots": [{ "start": "14:00", "end": "22:00" }] },
+    "saturday": { "open": true, "slots": [{ "start": "10:00", "end": "12:00" }, { "start": "14:00", "end": "22:00" }] },
+    "sunday": { "open": false, "slots": [] }
+  },
+  "updatedAt": null
+}
