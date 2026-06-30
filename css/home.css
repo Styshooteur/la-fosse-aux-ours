@@ -2,17 +2,35 @@
 
 body.page-home-active .bg-overlay {
   opacity: 0;
+  pointer-events: none;
+}
+
+body.page-home-active .container {
+  background: transparent;
+  border-color: rgba(28, 18, 8, 0.45);
+  box-shadow: none;
 }
 
 body.page-home-active .home-bg {
   position: fixed;
   inset: 0;
-  z-index: -2;
+  z-index: 0;
+}
+
+body.page-home-active .hero {
+  position: relative;
+  z-index: 2;
+}
+
+body.page-home-active main.container {
+  position: relative;
+  z-index: 1;
 }
 
 body.page-home-active .home-section {
   margin: 0 -1rem;
   min-height: calc(100vh - 12rem);
+  overflow: visible;
 }
 
 .home-section {
@@ -30,8 +48,8 @@ body.page-home-active .home-section {
   position: absolute;
   inset: 0;
   background:
-    url('../assets/accueil-bg.jpg') center center / cover no-repeat,
-    url('../assets/accueil-bg.svg') center center / cover no-repeat,
+    url('/assets/accueil-bg.jpg') center center / cover no-repeat,
+    url('/assets/accueil-bg.svg') center center / cover no-repeat,
     linear-gradient(180deg, #d4bc8e 0%, #b89868 100%);
   z-index: 0;
 }
