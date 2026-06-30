@@ -223,6 +223,9 @@ function switchPanel(panel) {
   }
 
   document.body.classList.toggle('page-home-active', panel === 'home');
+
+  const backdrop = $('home-backdrop');
+  if (backdrop) backdrop.hidden = panel !== 'home';
 }
 
 function setupEventListeners() {
