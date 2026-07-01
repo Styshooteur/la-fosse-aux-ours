@@ -1,9 +1,29 @@
-import { verifyPin, getAdminPinFromRequest } from '../_lib/admin.js';
-import { formatStorageError } from '../_lib/storage-error.js';
-import { getArenaRules, saveArenaRules } from '../_lib/arena-rules-store.js';
+import { verifyPin, getAdminPinFromRequest } from './_lib/admin.js';
+import { formatStorageError } from './_lib/storage-error.js';
+import { getArenaRules, saveArenaRules } from './_lib/arena-rules-store.js';
+
+function isPublicRequest(req) {
+  if (req.query?.scope === 'public') return true;
+  const path = String(req.url || '').split('?')[0];
+  return path.endsWith('/public');
+}
 
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
+
+  if (isPublicRequest(req)) {
+    if (req.method !== 'GET') {
+      res.setHeader('Allow', 'GET');
+      return res.status(405).json({ error: 'Méthode non autorisée.' });
+    }
+
+    try {
+      const data = await getArenaRules();
+      return res.status(200).json(data);
+    } catch (error) {
+      return res.status(500).json({ error: formatStorageError(error) });
+    }
+  }
 
   try {
     if (req.method === 'GET') {
