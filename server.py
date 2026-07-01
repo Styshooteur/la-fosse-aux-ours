@@ -23,6 +23,7 @@ FIGHTERS_DIR = ROOT / 'assets' / 'fighters'
 TOURNAMENTS_DIR = ROOT / 'data' / 'tournaments'
 TOURNAMENTS_INDEX = ROOT / 'data' / 'tournaments-index.json'
 OPENING_HOURS_JSON = ROOT / 'data' / 'opening-hours.json'
+ARENA_RULES_JSON = ROOT / 'data' / 'arena-rules.json'
 
 
 def slugify(name: str) -> str:
@@ -77,6 +78,12 @@ class Handler(SimpleHTTPRequestHandler):
         if self.path == '/api/opening-hours' or self.path.startswith('/api/opening-hours?'):
             self.serve_opening_hours_admin_get()
             return
+        if self.path == '/api/arena-rules/public' or self.path.startswith('/api/arena-rules/public?'):
+            self.serve_arena_rules_public()
+            return
+        if self.path == '/api/arena-rules' or self.path.startswith('/api/arena-rules?'):
+            self.serve_arena_rules_admin_get()
+            return
         super().do_GET()
 
     def end_headers(self):
@@ -105,6 +112,8 @@ class Handler(SimpleHTTPRequestHandler):
             self.handle_tournaments_post(payload)
         elif self.path == '/api/opening-hours':
             self.handle_opening_hours_post(payload)
+        elif self.path == '/api/arena-rules':
+            self.handle_arena_rules_post(payload)
         else:
             self.send_json(404, {'error': 'Route introuvable.'})
 
@@ -334,6 +343,72 @@ class Handler(SimpleHTTPRequestHandler):
             self.send_json(200, {'ok': True, **saved})
         except ValueError as exc:
             self.send_json(400, {'error': str(exc)})
+
+    def sanitize_rules_html(self, html_text):
+        text = str(html_text or '')
+        text = re.sub(r'<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>', '', text, flags=re.I)
+        text = re.sub(r'\son\w+="[^"]*"', '', text, flags=re.I)
+        text = re.sub(r'\son\w+=\'[^\']*\'', '', text, flags=re.I)
+        return text.strip()
+
+    def default_arena_rules(self):
+        return {
+            'announcements': '',
+            'importantRules': '',
+            'body': '',
+            'updatedAt': None,
+            'announcementsUpdatedAt': None,
+        }
+
+    def load_arena_rules(self):
+        data = load_json(ARENA_RULES_JSON, None)
+        if not data:
+            return self.default_arena_rules()
+        base = self.default_arena_rules()
+        base.update({k: data.get(k, base[k]) for k in base})
+        return base
+
+    def save_arena_rules(self, sections):
+        existing = self.load_arena_rules()
+        sanitized = {
+            'announcements': self.sanitize_rules_html(sections.get('announcements')),
+            'importantRules': self.sanitize_rules_html(sections.get('importantRules')),
+            'body': self.sanitize_rules_html(sections.get('body')),
+            'updatedAt': time.strftime('%Y-%m-%dT%H:%M:%S.000Z', time.gmtime()),
+        }
+        announcements_changed = sanitized['announcements'] != (existing.get('announcements') or '')
+        payload = {
+            **sanitized,
+            'announcementsUpdatedAt': sanitized['updatedAt']
+            if announcements_changed
+            else existing.get('announcementsUpdatedAt') or sanitized['updatedAt'],
+        }
+        save_json(ARENA_RULES_JSON, payload)
+        return payload
+
+    def serve_arena_rules_public(self):
+        self.send_json(200, self.load_arena_rules())
+
+    def serve_arena_rules_admin_get(self):
+        pin = self.headers.get('X-Admin-Pin', '')
+        if not verify_pin(pin):
+            self.send_json(403, {'error': 'Accès refusé.'})
+            return
+        self.send_json(200, self.load_arena_rules())
+
+    def handle_arena_rules_post(self, payload):
+        pin = payload.get('pin', '') or self.headers.get('X-Admin-Pin', '')
+        if not verify_pin(pin):
+            self.send_json(403, {'error': 'Code administrateur incorrect.'})
+            return
+
+        sections = payload.get('sections')
+        if not sections:
+            self.send_json(400, {'error': 'Contenu des règles manquant.'})
+            return
+
+        saved = self.save_arena_rules(sections)
+        self.send_json(200, {'ok': True, **saved})
 
     def serve_tournaments_stream(self):
         self.send_response(200)

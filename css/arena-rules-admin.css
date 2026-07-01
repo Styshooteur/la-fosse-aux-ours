@@ -1,0 +1,98 @@
+/* Admin — Règles de l'arène (éditeurs Quill) */
+
+.arena-rules-admin-header h2 {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  letter-spacing: 0.08em;
+  margin-bottom: 0.5rem;
+}
+
+.arena-rules-admin-note {
+  font-size: 0.95rem;
+  color: var(--ink-muted);
+  font-style: italic;
+  margin-bottom: 1.5rem;
+}
+
+.arena-rules-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.arena-rules-editor-card {
+  padding: 1rem 1rem 0.75rem;
+  border: 1.5px solid rgba(60, 40, 25, 0.25);
+  background: rgba(255, 252, 242, 0.55);
+}
+
+.arena-rules-editor-title {
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  letter-spacing: 0.06em;
+  margin: 0 0 0.75rem;
+}
+
+.arena-rules-editor-host {
+  min-height: 9rem;
+  background: rgba(255, 252, 242, 0.9);
+}
+
+.arena-rules-editor-host .ql-toolbar.ql-snow {
+  border: 1.5px solid var(--ink);
+  border-bottom: none;
+  background: rgba(255, 252, 242, 0.95);
+  font-family: var(--font-body);
+}
+
+.arena-rules-editor-host .ql-container.ql-snow {
+  border: 1.5px solid var(--ink);
+  font-family: var(--font-body);
+  font-size: 1rem;
+  color: var(--ink);
+  min-height: 7.5rem;
+}
+
+.arena-rules-editor-host .ql-editor {
+  min-height: 7.5rem;
+}
+
+.arena-rules-editor-host .ql-editor .ql-size-small {
+  font-size: 0.85em;
+}
+
+.arena-rules-editor-host .ql-editor .ql-size-large {
+  font-size: 1.2em;
+}
+
+.arena-rules-editor-host .ql-editor .ql-size-huge {
+  font-size: 1.45em;
+}
+
+.arena-rules-admin-actions {
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid rgba(60, 40, 25, 0.2);
+}
+
+.arena-rules-save-btn {
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 0.65rem 1.5rem;
+  border: 2px solid var(--ink);
+  background: var(--ink-soft);
+  color: #fff8ee;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.arena-rules-save-btn:hover:not(:disabled) {
+  background: var(--crimson);
+}
+
+.arena-rules-save-btn:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}

@@ -2,6 +2,7 @@ import { CONFIG } from './config.js?v=20260630a';
 import { fetchLeaderboard, fetchFighterCards, gradeToClass } from './sheets.js?v=20260630a';
 import { initLiveEventsNav, activateLiveEventsPanel, deactivateLiveEventsPanel } from './events.js?v=20260630a';
 import { initHome, activateHomePanel, deactivateHomePanel } from './home.js?v=20260630a';
+import { initArenaRulesPublic, openRulesModal, refreshRulesPage } from './arena-rules/modal.js?v=20260701b';
 import { escapeHtml } from './utils.js?v=20260630a';
 
 let allFightersData = [];
@@ -246,15 +247,19 @@ function switchPanel(panel) {
   const home = $('panel-home');
   const leaderboard = $('panel-leaderboard');
   const events = $('panel-events');
+  const rules = $('panel-rules');
   const navHome = $('nav-home');
   const navLeaderboard = $('nav-leaderboard');
+  const navRules = $('nav-rules');
   const navEvents = $('nav-events');
 
   if (home) home.classList.toggle('hidden', panel !== 'home');
   if (leaderboard) leaderboard.classList.toggle('hidden', panel !== 'leaderboard');
   if (events) events.classList.toggle('hidden', panel !== 'events');
+  if (rules) rules.classList.toggle('hidden', panel !== 'rules');
   navHome?.classList.toggle('site-nav-btn--active', panel === 'home');
   navLeaderboard?.classList.toggle('site-nav-btn--active', panel === 'leaderboard');
+  navRules?.classList.toggle('site-nav-btn--active', panel === 'rules');
   navEvents?.classList.toggle('site-nav-btn--active', panel === 'events');
 
   if (panel === 'home') {
@@ -263,6 +268,10 @@ function switchPanel(panel) {
   } else if (panel === 'events') {
     deactivateHomePanel();
     activateLiveEventsPanel();
+  } else if (panel === 'rules') {
+    deactivateHomePanel();
+    deactivateLiveEventsPanel();
+    refreshRulesPage();
   } else {
     deactivateHomePanel();
     deactivateLiveEventsPanel();
@@ -276,6 +285,7 @@ function switchPanel(panel) {
 
 function setupEventListeners() {
   $('btn-refresh')?.addEventListener('click', loadData);
+  $('home-rules-btn')?.addEventListener('click', () => openRulesModal('full'));
 
   const searchInput = $('leaderboard-search');
   const searchClear = $('leaderboard-search-clear');
@@ -314,6 +324,7 @@ async function init() {
   setupEventListeners();
   switchPanel('home');
   initHome();
+  initArenaRulesPublic();
   initLiveEventsNav();
   await loadData();
   startAutoRefresh();

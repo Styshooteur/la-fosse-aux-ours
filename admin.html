@@ -12,6 +12,8 @@
   <link rel="stylesheet" href="css/admin.css?v=20260701a">
   <link rel="stylesheet" href="css/tournaments.css?v=20260630a">
   <link rel="stylesheet" href="css/opening-hours-admin.css?v=20260630a">
+  <link href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css" rel="stylesheet">
+  <link rel="stylesheet" href="css/arena-rules-admin.css?v=20260701b">
 </head>
 <body>
   <div class="bg-overlay"></div>
@@ -36,6 +38,7 @@
         <button type="button" class="admin-tab admin-tab--active" data-tab="portraits" role="tab" aria-selected="true" aria-controls="tab-portraits" id="tab-btn-portraits">Portraits</button>
         <button type="button" class="admin-tab" data-tab="hours" role="tab" aria-selected="false" aria-controls="tab-hours" id="tab-btn-hours">Horaires d'ouverture</button>
         <button type="button" class="admin-tab" data-tab="tournaments" role="tab" aria-selected="false" aria-controls="tab-tournaments" id="tab-btn-tournaments">Tournois</button>
+        <button type="button" class="admin-tab" data-tab="rules" role="tab" aria-selected="false" aria-controls="tab-rules" id="tab-btn-rules">Règles</button>
         <button type="button" class="admin-tab" data-tab="elo" role="tab" aria-selected="false" aria-controls="tab-elo" id="tab-btn-elo">Calculateur d'Elo</button>
       </nav>
 
@@ -70,6 +73,10 @@
 
       <div class="admin-tab-panel hidden" id="tab-tournaments" role="tabpanel" aria-labelledby="tab-btn-tournaments" hidden>
         <div id="tournaments-root"></div>
+      </div>
+
+      <div class="admin-tab-panel hidden" id="tab-rules" role="tabpanel" aria-labelledby="tab-btn-rules" hidden>
+        <div id="arena-rules-root"></div>
       </div>
 
       <div class="admin-tab-panel hidden" id="tab-elo" role="tabpanel" aria-labelledby="tab-btn-elo" hidden>
@@ -171,6 +178,6 @@
     </div>
   </div>
 
-  <script type="module" src="js/admin.js?v=20260701a"></script>
+  <script type="module" src="js/admin.js?v=20260701b"></script>
 </body>
 </html>
