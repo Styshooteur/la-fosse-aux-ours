@@ -61,37 +61,33 @@ async function loadFighters() {
   await refreshPortraitsFromServer();
 }
 
-function renderAdminList() {
-  const list = $('admin-list');
-  list.innerHTML = fighters
-    .map((f) => {
-      const image = portraits[f.combattant]?.image;
-      const thumb = image
-        ? `<img class="admin-thumb" src="${image}?v=${Date.now()}" alt="" />`
-        : '<div class="admin-thumb admin-thumb--empty">Aucun<br>portrait</div>';
+function normalizeSearch(str) {
+  return String(str || '')
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .toLowerCase();
+}
 
-      const hasCustom = customPortraits.has(f.combattant);
+function getPortraitSearchQuery() {
+  return $('admin-portrait-search')?.value ?? '';
+}
 
-      return `
-        <article class="admin-item" data-name="${encodeURIComponent(f.combattant)}">
-          ${thumb}
-          <div class="admin-item-info">
-            <h3>${escapeHtml(f.combattant)}</h3>
-            <p><span class="grade-badge ${gradeToClass(f.grade)}">${escapeHtml(f.grade)}</span> · Rang ${escapeHtml(String(f.rang))}</p>
-          </div>
-          <div class="admin-item-actions">
-            <input type="file" accept="image/png,image/jpeg,image/webp,image/gif" class="admin-file" />
-            <span class="admin-file-hint">Choisir une photo pour l'ajuster</span>
-            ${
-              hasCustom
-                ? `<button type="button" class="admin-btn-delete" data-action="delete-portrait">Supprimer le portrait</button>`
-                : ''
-            }
-          </div>
-        </article>`;
-    })
-    .join('');
+function updatePortraitSearchClearButton() {
+  const clearBtn = $('admin-portrait-search-clear');
+  const input = $('admin-portrait-search');
+  if (!clearBtn || !input) return;
+  const hasText = input.value.length > 0;
+  clearBtn.classList.toggle('hidden', !hasText);
+  clearBtn.hidden = !hasText;
+}
 
+function filterFightersBySearch(fightersList, query) {
+  const needle = normalizeSearch(query.trim());
+  if (!needle) return fightersList;
+  return fightersList.filter((f) => normalizeSearch(f.combattant).includes(needle));
+}
+
+function bindAdminListItems(list) {
   list.querySelectorAll('.admin-item').forEach((item) => {
     const name = decodeURIComponent(item.dataset.name);
     const fileInput = item.querySelector('.admin-file');
@@ -123,6 +119,65 @@ function renderAdminList() {
       await deletePortrait(name);
     });
   });
+}
+
+function renderAdminListItems(fightersToShow, hasSearchQuery) {
+  const list = $('admin-list');
+
+  if (!fightersToShow.length) {
+    list.innerHTML = hasSearchQuery
+      ? '<p class="admin-list-empty">Aucun combattant trouvé</p>'
+      : '';
+    return;
+  }
+
+  list.innerHTML = fightersToShow
+    .map((f) => {
+      const image = portraits[f.combattant]?.image;
+      const thumb = image
+        ? `<img class="admin-thumb" src="${image}?v=${Date.now()}" alt="" />`
+        : '<div class="admin-thumb admin-thumb--empty">Aucun<br>portrait</div>';
+
+      const hasCustom = customPortraits.has(f.combattant);
+
+      return `
+        <article class="admin-item" data-name="${encodeURIComponent(f.combattant)}">
+          ${thumb}
+          <div class="admin-item-info">
+            <h3>${escapeHtml(f.combattant)}</h3>
+            <p><span class="grade-badge ${gradeToClass(f.grade)}">${escapeHtml(f.grade)}</span> · Rang ${escapeHtml(String(f.rang))}</p>
+          </div>
+          <div class="admin-item-actions">
+            <input type="file" accept="image/png,image/jpeg,image/webp,image/gif" class="admin-file" />
+            <span class="admin-file-hint">Choisir une photo pour l'ajuster</span>
+            ${
+              hasCustom
+                ? `<button type="button" class="admin-btn-delete" data-action="delete-portrait">Supprimer le portrait</button>`
+                : ''
+            }
+          </div>
+        </article>`;
+    })
+    .join('');
+
+  bindAdminListItems(list);
+}
+
+function applyPortraitFilter() {
+  if (!fighters.length) {
+    $('admin-list').innerHTML = '';
+    updatePortraitSearchClearButton();
+    return;
+  }
+
+  const query = getPortraitSearchQuery();
+  const filtered = filterFightersBySearch(fighters, query);
+  renderAdminListItems(filtered, query.trim().length > 0);
+  updatePortraitSearchClearButton();
+}
+
+function renderAdminList() {
+  applyPortraitFilter();
 }
 
 async function uploadPortrait(name, dataUrl) {
@@ -206,6 +261,20 @@ function switchTab(tabId) {
   if (tabId === 'tournaments' && tournamentsAdmin) {
     tournamentsAdmin.open();
   }
+}
+
+function setupPortraitSearch() {
+  const searchInput = $('admin-portrait-search');
+  const searchClear = $('admin-portrait-search-clear');
+
+  searchInput?.addEventListener('input', applyPortraitFilter);
+
+  searchClear?.addEventListener('click', () => {
+    if (!searchInput) return;
+    searchInput.value = '';
+    searchInput.focus();
+    applyPortraitFilter();
+  });
 }
 
 function setupTabs() {
@@ -362,6 +431,7 @@ async function unlockAdmin(pin) {
 
 async function init() {
   setupTabs();
+  setupPortraitSearch();
   setupEloCalculator();
 
   const savedPin = getPin();

@@ -112,10 +112,27 @@
   text-align: center;
   font-style: italic;
   color: var(--ink-muted);
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
   padding: 0.75rem 1rem;
   border: 1px solid rgba(60, 40, 25, 0.2);
   background: rgba(255, 252, 242, 0.5);
+}
+
+.admin-portraits-toolbar {
+  margin-bottom: 1.25rem;
+}
+
+.admin-portrait-search-wrap {
+  max-width: 24rem;
+}
+
+.admin-list-empty {
+  text-align: center;
+  font-style: italic;
+  color: var(--ink-muted);
+  padding: 2rem 1rem;
+  border: 1.5px dashed rgba(60, 40, 25, 0.25);
+  background: rgba(255, 252, 242, 0.45);
 }
 
 .admin-list {
