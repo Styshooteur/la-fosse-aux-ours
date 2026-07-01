@@ -2,7 +2,7 @@ import { CONFIG } from './config.js?v=20260630a';
 import { fetchLeaderboard, fetchFighterCards, gradeToClass } from './sheets.js?v=20260630a';
 import { initLiveEventsNav, activateLiveEventsPanel, deactivateLiveEventsPanel } from './events.js?v=20260630a';
 import { initHome, activateHomePanel, deactivateHomePanel } from './home.js?v=20260630a';
-import { initArenaRulesPublic, openRulesModal, refreshRulesPage } from './arena-rules/modal.js?v=20260701b';
+import { initArenaRulesPublic, openRulesModal, refreshRulesPage } from './arena-rules/modal.js?v=20260701c';
 import { escapeHtml } from './utils.js?v=20260630a';
 
 let allFightersData = [];
