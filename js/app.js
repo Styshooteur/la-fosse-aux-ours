@@ -2,7 +2,7 @@ import { CONFIG } from './config.js?v=20260630a';
 import { fetchLeaderboard, fetchFighterCards, gradeToClass } from './sheets.js?v=20260630a';
 import { initLiveEventsNav, activateLiveEventsPanel, deactivateLiveEventsPanel } from './events.js?v=20260630a';
 import { initHome, activateHomePanel, deactivateHomePanel } from './home.js?v=20260630a';
-import { initArenaRulesPublic, openRulesModal, refreshRulesPage } from './arena-rules/modal.js?v=20260702e';
+import { initArenaRulesPublic, openRulesModal, refreshRulesPage } from './arena-rules/modal.js?v=20260702f';
 import { escapeHtml } from './utils.js?v=20260630a';
 
 let allFightersData = [];
@@ -285,7 +285,7 @@ function switchPanel(panel) {
 
 function setupEventListeners() {
   $('btn-refresh')?.addEventListener('click', loadData);
-  $('home-rules-btn')?.addEventListener('click', () => openRulesModal('full'));
+  $('home-rules-btn')?.addEventListener('click', () => openRulesModal('compact'));
 
   const searchInput = $('leaderboard-search');
   const searchClear = $('leaderboard-search-clear');

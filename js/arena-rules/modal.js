@@ -6,7 +6,7 @@ import {
   RULE_SECTION_LABELS,
 } from './utils.js';
 let cachedRules = null;
-let modalMode = 'summary';
+let modalMode = 'compact';
 
 const $ = (id) => document.getElementById(id);
 
@@ -21,19 +21,20 @@ function assembleSections(blocks) {
   return blocks.filter(Boolean).join(RULES_SECTION_DIVIDER);
 }
 
-function sectionBlock(title, html, { force = false, extraClass = '' } = {}) {
+function sectionBlock(title, html, { force = false, extraClass = '', id = '' } = {}) {
   if (!force && isRulesHtmlEmpty(html)) return '';
   const content = isRulesHtmlEmpty(html)
     ? '<p class="rules-rich-text rules-rich-text--empty">—</p>'
     : `<div class="rules-block-content rules-rich-text">${sanitizeRulesHtml(html)}</div>`;
+  const idAttr = id ? ` id="${id}"` : '';
   return `
-    <section class="rules-block ${extraClass}">
+    <section class="rules-block ${extraClass}"${idAttr}>
       <h3 class="rules-block-title">${title}</h3>
       ${content}
     </section>`;
 }
 
-function buildSummaryBody(rules) {
+function buildCompactBody(rules) {
   return assembleSections([
     sectionBlock(RULE_SECTION_LABELS.announcements, rules.announcements),
     sectionBlock(RULE_SECTION_LABELS.importantRules, rules.importantRules, {
@@ -43,27 +44,31 @@ function buildSummaryBody(rules) {
   ]);
 }
 
-function buildFullBody(rules) {
+function buildExhaustiveBody(rules) {
   return assembleSections([
     sectionBlock(RULE_SECTION_LABELS.announcements, rules.announcements),
     sectionBlock(RULE_SECTION_LABELS.importantRules, rules.importantRules, {
       force: true,
       extraClass: 'rules-block--important',
     }),
-    sectionBlock(RULE_SECTION_LABELS.body, rules.body),
+    sectionBlock(RULE_SECTION_LABELS.body, rules.body, { id: 'rules-block-registre' }),
   ]);
 }
 
-function renderModalFooter(mode) {
+function hasRegistreContent(rules) {
+  return !isRulesHtmlEmpty(rules?.body);
+}
+
+function renderModalFooter(showExhaustiveButton) {
   const footer = $('rules-modal-footer');
   if (!footer) return;
 
-  if (mode === 'summary') {
+  if (showExhaustiveButton) {
     footer.innerHTML = `
-      <button type="button" class="rules-btn rules-btn--primary" id="rules-expand-btn">
-        Voir toutes les règles
+      <button type="button" class="rules-btn rules-btn--primary" id="rules-exhaustive-btn">
+        Voir la liste exhaustive
       </button>`;
-    $('rules-expand-btn')?.addEventListener('click', () => openRulesModal('full'));
+    $('rules-exhaustive-btn')?.addEventListener('click', () => openRulesModal('exhaustive'));
     footer.classList.remove('hidden');
     footer.hidden = false;
   } else {
@@ -84,16 +89,23 @@ function renderModalContent(mode) {
 
   if (mode === 'summary') {
     title.textContent = 'Veuillez prendre connaissance des règles de l\'arène';
-    body.innerHTML = buildSummaryBody(cachedRules);
   } else {
     title.textContent = 'Règles de l\'arène';
-    body.innerHTML = buildFullBody(cachedRules);
   }
 
-  renderModalFooter(mode);
+  if (mode === 'exhaustive') {
+    body.innerHTML = buildExhaustiveBody(cachedRules);
+    renderModalFooter(false);
+    requestAnimationFrame(() => {
+      $('rules-block-registre')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  } else {
+    body.innerHTML = buildCompactBody(cachedRules);
+    renderModalFooter(hasRegistreContent(cachedRules));
+  }
 }
 
-export function openRulesModal(mode = 'full') {
+export function openRulesModal(mode = 'compact') {
   if (!cachedRules) return;
 
   renderModalContent(mode);
@@ -126,7 +138,7 @@ export function renderRulesPage(container) {
   container.innerHTML = `
     <div class="rules-page-inner">
       <h2 class="rules-page-title">Règles de l'arène</h2>
-      ${buildFullBody(cachedRules)}
+      ${buildExhaustiveBody(cachedRules)}
     </div>`;
 }
 
