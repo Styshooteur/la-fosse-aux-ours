@@ -8,7 +8,7 @@ import {
 } from './elo-calculator.js?v=20260627a';
 import { initTournamentsAdmin } from './tournaments/tournament-app.js?v=20260630a';
 import { initOpeningHoursAdmin } from './opening-hours/admin.js?v=20260630a';
-import { initArenaRulesAdmin } from './arena-rules/admin.js?v=20260702c';
+import { initArenaRulesAdmin } from './arena-rules/admin.js?v=20260702d';
 import { escapeHtml } from './utils.js?v=20260630a';
 
 const PIN_KEY = 'fosse-admin-pin';

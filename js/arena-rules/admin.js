@@ -5,6 +5,8 @@ import {
   buildToolbarHtml,
   buildToolbarHandlers,
   preserveToolbarSelection,
+  syncToolbarWithSelection,
+  attachPasteNormalizer,
   setQuillHtml,
   getQuillHtml,
 } from './formats.js';
@@ -54,6 +56,8 @@ export function initArenaRulesAdmin({ root, getPin, showStatus }) {
       placeholder: 'Saisissez le contenu…',
     });
     preserveToolbarSelection(editors[key]);
+    syncToolbarWithSelection(editors[key]);
+    attachPasteNormalizer(editors[key], Quill);
   }
 
   function syncEditorsFromData(data) {

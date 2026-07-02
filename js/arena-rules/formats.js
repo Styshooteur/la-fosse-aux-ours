@@ -1,5 +1,7 @@
 /** Formats Quill partagés — garder les classes alignées avec api/_lib/arena-rules-validate.js */
 
+import { normalizeRulesHtml, plainTextToRulesHtml } from './html-normalize.js';
+
 export const QUILL_FONTS = [
   { value: 'garamond', label: 'EB Garamond', family: "'EB Garamond', Georgia, serif" },
   { value: 'medieval', label: 'MedievalSharp', family: "'MedievalSharp', serif" },
@@ -55,7 +57,7 @@ export function buildToolbarHtml(toolbarId) {
 
   const sizeOptions = QUILL_SIZE_OPTIONS.map((s) => {
     if (s.value === false) {
-      return `<option selected>${s.label}</option>`;
+      return `<option value="">${s.label}</option>`;
     }
     return `<option value="${s.value}">${s.label}</option>`;
   }).join('');
@@ -76,17 +78,21 @@ export function buildToolbarHtml(toolbarId) {
     </div>`;
 }
 
+function applyInlineFormat(quill, range, name, value) {
+  if (!range) return;
+  const actual = value === '' || value == null ? false : value;
+  quill.formatText(range.index, range.length, name, actual, 'user');
+}
+
 export function buildToolbarHandlers() {
   return {
     font(value) {
       const range = this.quill.getSelection(true);
-      if (!range) return;
-      this.quill.formatText(range.index, range.length, 'font', value || false, 'user');
+      applyInlineFormat(this.quill, range, 'font', value);
     },
     size(value) {
       const range = this.quill.getSelection(true);
-      if (!range) return;
-      this.quill.formatText(range.index, range.length, 'size', value || false, 'user');
+      applyInlineFormat(this.quill, range, 'size', value);
     },
   };
 }
@@ -101,16 +107,63 @@ export function preserveToolbarSelection(editor) {
   }
 }
 
+export function syncToolbarWithSelection(editor) {
+  const toolbar = editor.getModule('toolbar');
+  if (!toolbar?.container) return;
+
+  const fontSelect = toolbar.container.querySelector('select.ql-font');
+  const sizeSelect = toolbar.container.querySelector('select.ql-size');
+
+  editor.on('selection-change', (range) => {
+    if (!range) return;
+    const format = editor.getFormat(range);
+    if (fontSelect) {
+      fontSelect.value = format.font || QUILL_FONTS[0].value;
+    }
+    if (sizeSelect) {
+      sizeSelect.value = format.size || '';
+    }
+  });
+}
+
+export function attachPasteNormalizer(editor, Quill) {
+  const Delta = Quill.import('delta');
+
+  editor.root.addEventListener('paste', (event) => {
+    event.preventDefault();
+
+    const range = editor.getSelection(true);
+    if (!range) return;
+
+    const html = event.clipboardData?.getData('text/html') || '';
+    const plain = event.clipboardData?.getData('text/plain') || '';
+    const normalized = normalizeRulesHtml(html) || plainTextToRulesHtml(plain);
+    const safeHtml = normalized || '<p><br></p>';
+
+    const delta = editor.clipboard.convert({ html: safeHtml });
+    const change = new Delta()
+      .retain(range.index)
+      .delete(range.length)
+      .concat(delta);
+
+    editor.updateContents(change, 'user');
+    editor.setSelection(range.index + delta.length(), 0, 'silent');
+  });
+}
+
 export function setQuillHtml(editor, html) {
-  const clean = String(html || '').trim();
-  if (!clean) {
+  const normalized = normalizeRulesHtml(html);
+  if (!normalized) {
     editor.setText('', 'silent');
     return;
   }
-  const delta = editor.clipboard.convert({ html: clean });
+  const delta = editor.clipboard.convert({ html: normalized });
   editor.setContents(delta, 'silent');
 }
 
 export function getQuillHtml(editor) {
-  return editor.getSemanticHTML().trim();
+  const raw = editor.getSemanticHTML().trim();
+  return normalizeRulesHtml(raw) || raw;
 }
+
+export { normalizeRulesHtml };
