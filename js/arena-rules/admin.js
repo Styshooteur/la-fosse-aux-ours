@@ -1,11 +1,7 @@
 import Quill from 'https://cdn.jsdelivr.net/npm/quill@2.0.3/+esm';
+import { RULE_SECTIONS } from './utils.js';
 
-const SECTIONS = [
-  { key: 'announcements', label: 'Annonces' },
-  { key: 'importantRules', label: 'Règles importantes' },
-  { key: 'body', label: 'Corps du texte' },
-];
-
+const SECTIONS = RULE_SECTIONS;
 const TOOLBAR = [
   ['bold', 'italic', 'underline'],
   [{ size: ['small', false, 'large', 'huge'] }],
@@ -17,7 +13,7 @@ export function initArenaRulesAdmin({ root, getPin, showStatus }) {
     <div class="arena-rules-admin" id="arena-rules-admin">
       <div class="arena-rules-admin-header">
         <h2>Règles de l'arène</h2>
-        <p class="arena-rules-admin-note">Modifiez les trois sections ci-dessous. Les annonces mises à jour réaffichent le pop-up aux visiteurs.</p>
+        <p class="arena-rules-admin-note">Modifiez les trois sections ci-dessous. Le bulletin des modifications mis à jour réaffiche le pop-up aux visiteurs.</p>
       </div>
       <div class="arena-rules-sections" id="arena-rules-sections"></div>
       <div class="arena-rules-admin-actions">

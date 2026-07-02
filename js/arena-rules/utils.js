@@ -23,6 +23,16 @@ export function isRulesHtmlEmpty(html) {
 
 export const RULES_STORAGE_KEY = 'fosse-rules-last-seen-announcements';
 
+export const RULE_SECTIONS = [
+  { key: 'announcements', label: 'Bulletin des modifications' },
+  { key: 'importantRules', label: "Code essentiel de l'arène" },
+  { key: 'body', label: 'Registre des règles' },
+];
+
+export const RULE_SECTION_LABELS = Object.fromEntries(
+  RULE_SECTIONS.map(({ key, label }) => [key, label])
+);
+
 export function getLastSeenAnnouncementsAt() {
   try {
     return localStorage.getItem(RULES_STORAGE_KEY) || '';

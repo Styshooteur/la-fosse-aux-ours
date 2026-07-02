@@ -3,8 +3,8 @@ import {
   sanitizeRulesHtml,
   setLastSeenAnnouncementsAt,
   shouldAutoShowRules,
+  RULE_SECTION_LABELS,
 } from './utils.js';
-
 let cachedRules = null;
 let modalMode = 'summary';
 
@@ -24,16 +24,16 @@ function sectionBlock(title, html, { force = false, extraClass = '' } = {}) {
 
 function buildSummaryBody(rules) {
   return `
-    ${sectionBlock('Annonces', rules.announcements)}
-    ${sectionBlock('Règles importantes', rules.importantRules, { force: true, extraClass: 'rules-block--important' })}
+    ${sectionBlock(RULE_SECTION_LABELS.announcements, rules.announcements)}
+    ${sectionBlock(RULE_SECTION_LABELS.importantRules, rules.importantRules, { force: true, extraClass: 'rules-block--important' })}
   `;
 }
 
 function buildFullBody(rules) {
   return `
-    ${sectionBlock('Annonces', rules.announcements)}
-    ${sectionBlock('Règles importantes', rules.importantRules, { force: true, extraClass: 'rules-block--important' })}
-    ${sectionBlock('Corps du texte', rules.body)}
+    ${sectionBlock(RULE_SECTION_LABELS.announcements, rules.announcements)}
+    ${sectionBlock(RULE_SECTION_LABELS.importantRules, rules.importantRules, { force: true, extraClass: 'rules-block--important' })}
+    ${sectionBlock(RULE_SECTION_LABELS.body, rules.body)}
   `;
 }
 
