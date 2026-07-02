@@ -1,14 +1,17 @@
 import Quill from 'https://cdn.jsdelivr.net/npm/quill@2.0.3/+esm';
 import { RULE_SECTIONS } from './utils.js';
+import {
+  registerQuillFormats,
+  buildQuillToolbar,
+  setQuillHtml,
+  getQuillHtml,
+} from './formats.js';
 
 const SECTIONS = RULE_SECTIONS;
-const TOOLBAR = [
-  ['bold', 'italic', 'underline'],
-  [{ size: ['small', false, 'large', 'huge'] }],
-];
+
+registerQuillFormats(Quill);
 
 export function initArenaRulesAdmin({ root, getPin, showStatus }) {
-
   root.innerHTML = `
     <div class="arena-rules-admin" id="arena-rules-admin">
       <div class="arena-rules-admin-header">
@@ -37,9 +40,15 @@ export function initArenaRulesAdmin({ root, getPin, showStatus }) {
   for (const { key } of SECTIONS) {
     editors[key] = new Quill(`#editor-${key}`, {
       theme: 'snow',
-      modules: { toolbar: TOOLBAR },
+      modules: { toolbar: buildQuillToolbar() },
       placeholder: 'Saisissez le contenu…',
     });
+  }
+
+  function syncEditorsFromData(data) {
+    for (const { key } of SECTIONS) {
+      setQuillHtml(editors[key], data[key] || '');
+    }
   }
 
   async function load() {
@@ -51,9 +60,7 @@ export function initArenaRulesAdmin({ root, getPin, showStatus }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Impossible de charger les règles.');
 
-      for (const { key } of SECTIONS) {
-        editors[key].root.innerHTML = data[key] || '';
-      }
+      syncEditorsFromData(data);
     } catch (err) {
       showStatus(err.message, true);
     }
@@ -66,7 +73,7 @@ export function initArenaRulesAdmin({ root, getPin, showStatus }) {
 
     const sections = {};
     for (const { key } of SECTIONS) {
-      sections[key] = editors[key].root.innerHTML;
+      sections[key] = getQuillHtml(editors[key]);
     }
 
     try {
@@ -80,6 +87,8 @@ export function initArenaRulesAdmin({ root, getPin, showStatus }) {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Échec de l\'enregistrement.');
+
+      syncEditorsFromData(data);
       showStatus('Règles enregistrées.');
     } catch (err) {
       showStatus(err.message, true);
