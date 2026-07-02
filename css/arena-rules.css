@@ -65,8 +65,13 @@
 
 .rules-modal-body {
   overflow-y: auto;
-  padding: 1.1rem 1.35rem;
+  padding: 1.1rem 1.35rem 1.25rem;
   flex: 1;
+  background:
+    linear-gradient(rgba(60, 40, 25, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(60, 40, 25, 0.04) 1px, transparent 1px);
+  background-size: 1.25rem 1.25rem;
+  background-color: rgba(255, 250, 238, 0.35);
 }
 
 .rules-modal-footer {
@@ -109,10 +114,33 @@
   color: #fff8ee;
 }
 
-.rules-block + .rules-block {
-  margin-top: 1.15rem;
-  padding-top: 1rem;
-  border-top: 1px dashed rgba(60, 40, 25, 0.22);
+.rules-block {
+  padding: 0.15rem 0.1rem 0.25rem;
+}
+
+.rules-section-divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.7rem;
+  margin: 1.4rem 0 1.25rem;
+  padding: 0 0.15rem;
+}
+
+.rules-section-divider__line {
+  flex: 1;
+  height: 1px;
+  background: var(--ink);
+  opacity: 0.42;
+}
+
+.rules-section-divider__gem {
+  width: 8px;
+  height: 8px;
+  flex-shrink: 0;
+  background: var(--crimson);
+  transform: rotate(45deg);
+  box-shadow: 0 0 0 1px var(--ink);
 }
 
 .rules-block-title {
@@ -207,9 +235,12 @@
   padding: 1.25rem 1.1rem 1.75rem;
   border: 2px solid var(--ink);
   background:
+    linear-gradient(rgba(60, 40, 25, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(60, 40, 25, 0.04) 1px, transparent 1px),
     var(--paper-speckle),
     var(--paper-fiber),
     linear-gradient(180deg, rgba(255, 250, 238, 0.97), rgba(228, 210, 175, 0.98));
+  background-size: 1.25rem 1.25rem, 1.25rem 1.25rem, auto, auto, auto;
   box-shadow: var(--shadow-parchment);
 }
 

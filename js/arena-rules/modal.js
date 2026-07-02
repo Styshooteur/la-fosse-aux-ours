@@ -10,6 +10,17 @@ let modalMode = 'summary';
 
 const $ = (id) => document.getElementById(id);
 
+const RULES_SECTION_DIVIDER = `
+  <div class="rules-section-divider" aria-hidden="true">
+    <span class="rules-section-divider__line"></span>
+    <span class="rules-section-divider__gem"></span>
+    <span class="rules-section-divider__line"></span>
+  </div>`;
+
+function assembleSections(blocks) {
+  return blocks.filter(Boolean).join(RULES_SECTION_DIVIDER);
+}
+
 function sectionBlock(title, html, { force = false, extraClass = '' } = {}) {
   if (!force && isRulesHtmlEmpty(html)) return '';
   const content = isRulesHtmlEmpty(html)
@@ -23,18 +34,24 @@ function sectionBlock(title, html, { force = false, extraClass = '' } = {}) {
 }
 
 function buildSummaryBody(rules) {
-  return `
-    ${sectionBlock(RULE_SECTION_LABELS.announcements, rules.announcements)}
-    ${sectionBlock(RULE_SECTION_LABELS.importantRules, rules.importantRules, { force: true, extraClass: 'rules-block--important' })}
-  `;
+  return assembleSections([
+    sectionBlock(RULE_SECTION_LABELS.announcements, rules.announcements),
+    sectionBlock(RULE_SECTION_LABELS.importantRules, rules.importantRules, {
+      force: true,
+      extraClass: 'rules-block--important',
+    }),
+  ]);
 }
 
 function buildFullBody(rules) {
-  return `
-    ${sectionBlock(RULE_SECTION_LABELS.announcements, rules.announcements)}
-    ${sectionBlock(RULE_SECTION_LABELS.importantRules, rules.importantRules, { force: true, extraClass: 'rules-block--important' })}
-    ${sectionBlock(RULE_SECTION_LABELS.body, rules.body)}
-  `;
+  return assembleSections([
+    sectionBlock(RULE_SECTION_LABELS.announcements, rules.announcements),
+    sectionBlock(RULE_SECTION_LABELS.importantRules, rules.importantRules, {
+      force: true,
+      extraClass: 'rules-block--important',
+    }),
+    sectionBlock(RULE_SECTION_LABELS.body, rules.body),
+  ]);
 }
 
 function renderModalFooter(mode) {

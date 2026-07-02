@@ -1,0 +1,5 @@
+---
+alwaysApply: true
+---
+
+A chaque fois qu'une modification est demandée, si aucun contre indication n'est formellement indiqué, il faut commit et push à chaque fois.
