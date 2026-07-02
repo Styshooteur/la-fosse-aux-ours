@@ -38,7 +38,7 @@
   background: rgba(255, 252, 242, 0.9);
 }
 
-.arena-rules-editor-host .ql-toolbar.ql-snow {
+.arena-rules-editor-host .arena-rules-toolbar.ql-toolbar.ql-snow {
   border: 1.5px solid var(--ink);
   border-bottom: none;
   background: rgba(255, 252, 242, 0.95);
@@ -46,13 +46,17 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0.15rem;
+  padding: 0.45rem 0.5rem;
 }
 
-.arena-rules-editor-host .ql-toolbar.ql-snow .ql-formats {
+.arena-rules-editor-host .arena-rules-toolbar.ql-toolbar .ql-formats {
   margin-right: 0.35rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
 }
 
-.arena-rules-editor-host .ql-container.ql-snow {
+.arena-rules-editor-host .arena-rules-editor-surface.ql-container.ql-snow {
   border: 1.5px solid var(--ink);
   font-family: var(--font-body);
   font-size: 1rem;
@@ -66,20 +70,73 @@
   line-height: 1.65;
 }
 
-/* Tailles fixes en rem (pas em) pour éviter l'effet cumulatif */
+.arena-rules-editor-host select.ql-font,
+.arena-rules-editor-host select.ql-size {
+  height: 1.85rem;
+  padding: 0 0.45rem;
+  border: 1px solid rgba(60, 40, 25, 0.35);
+  border-radius: 0;
+  background: #fff8ee;
+  font-size: 0.88rem;
+  color: var(--ink);
+  cursor: pointer;
+  font-family: var(--font-body);
+}
+
+.arena-rules-editor-host select.ql-font {
+  min-width: 10.5rem;
+}
+
+.arena-rules-editor-host select.ql-size {
+  min-width: 7.5rem;
+}
+
+.arena-rules-editor-host select.ql-font:focus,
+.arena-rules-editor-host select.ql-size:focus {
+  outline: 2px solid rgba(120, 80, 40, 0.35);
+  outline-offset: 1px;
+}
+
+/* Tailles fixes en rem */
+.arena-rules-editor-host .ql-editor .ql-size-xs,
+.rules-rich-text .ql-size-xs {
+  font-size: 0.75rem;
+}
+
+.arena-rules-editor-host .ql-editor .ql-size-sm,
+.rules-rich-text .ql-size-sm,
 .arena-rules-editor-host .ql-editor .ql-size-small,
 .rules-rich-text .ql-size-small {
   font-size: 0.875rem;
 }
 
+.arena-rules-editor-host .ql-editor .ql-size-md,
+.rules-rich-text .ql-size-md {
+  font-size: 1.0625rem;
+}
+
+.arena-rules-editor-host .ql-editor .ql-size-lg,
+.rules-rich-text .ql-size-lg,
 .arena-rules-editor-host .ql-editor .ql-size-large,
 .rules-rich-text .ql-size-large {
   font-size: 1.25rem;
 }
 
+.arena-rules-editor-host .ql-editor .ql-size-xl,
+.rules-rich-text .ql-size-xl {
+  font-size: 1.375rem;
+}
+
+.arena-rules-editor-host .ql-editor .ql-size-xxl,
+.rules-rich-text .ql-size-xxl {
+  font-size: 1.5rem;
+}
+
+.arena-rules-editor-host .ql-editor .ql-size-xxxl,
+.rules-rich-text .ql-size-xxxl,
 .arena-rules-editor-host .ql-editor .ql-size-huge,
 .rules-rich-text .ql-size-huge {
-  font-size: 1.5625rem;
+  font-size: 1.75rem;
 }
 
 /* Polices Quill */
@@ -106,73 +163,6 @@
 .arena-rules-editor-host .ql-editor .ql-font-sans,
 .rules-rich-text .ql-font-sans {
   font-family: Arial, Helvetica, sans-serif;
-}
-
-/* Libellés français — menu taille */
-.arena-rules-editor-host .ql-snow .ql-picker.ql-size .ql-picker-label[data-value="small"]::before,
-.arena-rules-editor-host .ql-snow .ql-picker.ql-size .ql-picker-item[data-value="small"]::before {
-  content: 'Petit';
-}
-
-.arena-rules-editor-host .ql-snow .ql-picker.ql-size .ql-picker-label:not([data-value])::before,
-.arena-rules-editor-host .ql-snow .ql-picker.ql-size .ql-picker-item:not([data-value])::before {
-  content: 'Normal';
-}
-
-.arena-rules-editor-host .ql-snow .ql-picker.ql-size .ql-picker-label[data-value="large"]::before,
-.arena-rules-editor-host .ql-snow .ql-picker.ql-size .ql-picker-item[data-value="large"]::before {
-  content: 'Grand';
-}
-
-.arena-rules-editor-host .ql-snow .ql-picker.ql-size .ql-picker-label[data-value="huge"]::before,
-.arena-rules-editor-host .ql-snow .ql-picker.ql-size .ql-picker-item[data-value="huge"]::before {
-  content: 'Très grand';
-}
-
-/* Libellés français — menu police */
-.arena-rules-editor-host .ql-snow .ql-picker.ql-font {
-  width: 8.5rem;
-}
-
-.arena-rules-editor-host .ql-snow .ql-picker.ql-font .ql-picker-label::before,
-.arena-rules-editor-host .ql-snow .ql-picker.ql-font .ql-picker-item::before {
-  font-family: inherit;
-}
-
-.arena-rules-editor-host .ql-snow .ql-picker.ql-font .ql-picker-label[data-value="garamond"]::before,
-.arena-rules-editor-host .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="garamond"]::before {
-  content: 'Parchemin';
-  font-family: 'EB Garamond', Georgia, serif;
-}
-
-.arena-rules-editor-host .ql-snow .ql-picker.ql-font .ql-picker-label[data-value="medieval"]::before,
-.arena-rules-editor-host .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="medieval"]::before {
-  content: 'Médiéval';
-  font-family: 'MedievalSharp', serif;
-}
-
-.arena-rules-editor-host .ql-snow .ql-picker.ql-font .ql-picker-label[data-value="gothique"]::before,
-.arena-rules-editor-host .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="gothique"]::before {
-  content: 'Gothique';
-  font-family: 'UnifrakturMaguntia', serif;
-}
-
-.arena-rules-editor-host .ql-snow .ql-picker.ql-font .ql-picker-label[data-value="classique"]::before,
-.arena-rules-editor-host .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="classique"]::before {
-  content: 'Classique';
-  font-family: Georgia, 'Times New Roman', serif;
-}
-
-.arena-rules-editor-host .ql-snow .ql-picker.ql-font .ql-picker-label[data-value="sans"]::before,
-.arena-rules-editor-host .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="sans"]::before {
-  content: 'Sobre';
-  font-family: Arial, Helvetica, sans-serif;
-}
-
-.arena-rules-editor-host .ql-snow .ql-picker.ql-font .ql-picker-label:not([data-value])::before,
-.arena-rules-editor-host .ql-snow .ql-picker.ql-font .ql-picker-item:not([data-value])::before {
-  content: 'Parchemin';
-  font-family: 'EB Garamond', Georgia, serif;
 }
 
 .arena-rules-admin-actions {
@@ -204,7 +194,11 @@
 }
 
 @media (max-width: 640px) {
-  .arena-rules-editor-host .ql-snow .ql-picker.ql-font {
-    width: 7.25rem;
+  .arena-rules-editor-host select.ql-font {
+    min-width: 8.5rem;
+  }
+
+  .arena-rules-editor-host select.ql-size {
+    min-width: 6.75rem;
   }
 }

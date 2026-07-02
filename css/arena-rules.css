@@ -143,16 +143,35 @@
   margin-bottom: 0;
 }
 
+.rules-rich-text .ql-size-xs {
+  font-size: 0.75rem;
+}
+
+.rules-rich-text .ql-size-sm,
 .rules-rich-text .ql-size-small {
   font-size: 0.875rem;
 }
 
+.rules-rich-text .ql-size-md {
+  font-size: 1.0625rem;
+}
+
+.rules-rich-text .ql-size-lg,
 .rules-rich-text .ql-size-large {
   font-size: 1.25rem;
 }
 
+.rules-rich-text .ql-size-xl {
+  font-size: 1.375rem;
+}
+
+.rules-rich-text .ql-size-xxl {
+  font-size: 1.5rem;
+}
+
+.rules-rich-text .ql-size-xxxl,
 .rules-rich-text .ql-size-huge {
-  font-size: 1.5625rem;
+  font-size: 1.75rem;
 }
 
 .rules-rich-text .ql-font-garamond {

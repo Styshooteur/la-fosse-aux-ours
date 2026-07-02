@@ -2,7 +2,9 @@ import Quill from 'https://cdn.jsdelivr.net/npm/quill@2.0.3/+esm';
 import { RULE_SECTIONS } from './utils.js';
 import {
   registerQuillFormats,
-  buildQuillToolbar,
+  buildToolbarHtml,
+  buildToolbarHandlers,
+  preserveToolbarSelection,
   setQuillHtml,
   getQuillHtml,
 } from './formats.js';
@@ -33,16 +35,25 @@ export function initArenaRulesAdmin({ root, getPin, showStatus }) {
     ({ key, label }) => `
     <section class="arena-rules-editor-card" data-section="${key}">
       <h3 class="arena-rules-editor-title">${label}</h3>
-      <div class="arena-rules-editor-host" id="editor-${key}"></div>
+      <div class="arena-rules-editor-host">
+        ${buildToolbarHtml(`toolbar-${key}`)}
+        <div class="arena-rules-editor-surface" id="editor-${key}"></div>
+      </div>
     </section>`
   ).join('');
 
   for (const { key } of SECTIONS) {
     editors[key] = new Quill(`#editor-${key}`, {
       theme: 'snow',
-      modules: { toolbar: buildQuillToolbar() },
+      modules: {
+        toolbar: {
+          container: `#toolbar-${key}`,
+          handlers: buildToolbarHandlers(),
+        },
+      },
       placeholder: 'Saisissez le contenu…',
     });
+    preserveToolbarSelection(editors[key]);
   }
 
   function syncEditorsFromData(data) {
