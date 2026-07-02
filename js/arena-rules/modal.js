@@ -113,7 +113,9 @@ export function renderRulesPage(container) {
     </div>`;
 }
 
-export async function fetchArenaRules() {
+export async function fetchArenaRules({ force = false } = {}) {
+  if (!force && cachedRules) return cachedRules;
+
   const res = await fetch('/api/arena-rules/public', { cache: 'no-store' });
   if (!res.ok) throw new Error('Impossible de charger les règles.');
   const data = await res.json();
@@ -154,12 +156,16 @@ export async function initArenaRulesPublic() {
   }
 }
 
-export async function refreshRulesPage() {
-  try {
-    await fetchArenaRules();
-  } catch (err) {
-    console.error('Erreur rechargement règles', err);
-  }
+export function refreshRulesPage({ force = false } = {}) {
   const page = $('rules-page-content');
-  if (page && cachedRules) renderRulesPage(page);
+  if (!page) return;
+
+  if (cachedRules && !force) {
+    renderRulesPage(page);
+    return;
+  }
+
+  fetchArenaRules({ force })
+    .then(() => renderRulesPage(page))
+    .catch((err) => console.error('Erreur rechargement règles', err));
 }

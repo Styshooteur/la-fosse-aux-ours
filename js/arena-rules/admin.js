@@ -32,6 +32,7 @@ export function initArenaRulesAdmin({ root, getPin, showStatus }) {
 
   const $sections = root.querySelector('#arena-rules-sections');
   const editors = {};
+  let hasLoaded = false;
 
   $sections.innerHTML = SECTIONS.map(
     ({ key, label }) => `
@@ -66,7 +67,9 @@ export function initArenaRulesAdmin({ root, getPin, showStatus }) {
     }
   }
 
-  async function load() {
+  async function load({ force = false } = {}) {
+    if (hasLoaded && !force) return;
+
     try {
       const res = await fetch('/api/arena-rules', {
         headers: { 'X-Admin-Pin': getPin() },
@@ -76,6 +79,7 @@ export function initArenaRulesAdmin({ root, getPin, showStatus }) {
       if (!res.ok) throw new Error(data.error || 'Impossible de charger les règles.');
 
       syncEditorsFromData(data);
+      hasLoaded = true;
     } catch (err) {
       showStatus(err.message, true);
     }
@@ -104,6 +108,7 @@ export function initArenaRulesAdmin({ root, getPin, showStatus }) {
       if (!res.ok) throw new Error(data.error || 'Échec de l\'enregistrement.');
 
       syncEditorsFromData(data);
+      hasLoaded = true;
       showStatus('Règles enregistrées.');
     } catch (err) {
       showStatus(err.message, true);
